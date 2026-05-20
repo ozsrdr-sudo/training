@@ -44,7 +44,8 @@ export interface PriceAtArgs {
 
 export function priceAt(args: PriceAtArgs): PriceResult | null {
   const { S_new, days_passed, useOriginal, mode, dIV, original, state, contracts } = args;
-  const days_remaining = state.days - days_passed;
+  const src = useOriginal ? original : state;
+  const days_remaining = src.days - days_passed;
   if (days_remaining < 0) return null;
 
   const multiplier = 100 * Math.max(1, contracts);
@@ -60,6 +61,6 @@ export function priceAt(args: PriceAtArgs): PriceResult | null {
 
   const IV_use = useOriginal ? original.iv : state.iv + dIV;
   const r_use = useOriginal ? original.r : state.r;
-  const p = bsPriceAt(S_new, days_remaining, IV_use, r_use, state);
+  const p = bsPriceAt(S_new, days_remaining, IV_use, r_use, src);
   return { price: p, pnl: (p - original.price0) * multiplier };
 }
