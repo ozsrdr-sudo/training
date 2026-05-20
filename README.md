@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Opsiyon Dersi Simülatörü
 
-## Getting Started
+Türkçe konuşan kullanıcılara opsiyon (options) ticareti kavramlarını — özellikle **Greek'leri (Delta, Theta, Vega)** — interaktif, görsel ve sezgisel bir şekilde öğreten tek sayfalık simülatör.
 
-First, run the development server:
+> ⚠ **Uyarı:** Buradaki veriler yalnızca deneme/eğitim amaçlıdır, geliştirme aşamasındadır; değerler ve hesaplamalarda yanlışlıklar olabilir. Yatırım tavsiyesi değildir.
+
+## Özellikler
+
+- **Canlı Yahoo Finance verisi**: ticker arama → vade seçimi → strike seçimi ile herhangi bir Amerikan opsiyonu yükle
+- **Kontrat adedi**: 1–9999, tüm K/Z hesapları otomatik adetle çarpılır
+- **İki fiyatlama modu**: Lineer (Greek'lerle yaklaşık) ve Black-Scholes (sıfırdan yeniden fiyatlama)
+- **Üç grafik etkileşimi**: tıklayarak senaryo noktası ekle, hover ile canlı prim/K-Z, ısı haritası
+- **Greek slider'ları**: Δ/Θ/ν canlı oynatılabilir (Lineer modda etkili, BS'te readonly)
+- **Parametre slider'ları**: S/σ/T/r → Greek'ler BS ile yeniden hesaplanır
+- **Dinamik öğretmen kutusu**: her etkileşimde bağlama uygun açıklama
+
+## Stack
+
+- Next.js 14 (App Router) + TypeScript + Tailwind CSS
+- Chart.js (doğrudan `Chart` instance + custom plugin)
+- `yahoo-finance2` v3 (server-side, in-memory cache)
+- Black-Scholes kendi yazıldı (`lib/black-scholes.ts`, Abramowitz-Stegun normCdf)
+- Jest birim testleri (Hull referans değerleri + put-call parity)
+
+## Geliştirme
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm test           # Black-Scholes Jest testleri
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## API Route'ları
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Endpoint | Açıklama |
+|----------|----------|
+| `GET /api/search?q=<query>` | Ticker/şirket adı autocomplete (10 dk cache) |
+| `GET /api/quote?symbol=<sym>` | Spot fiyat, değişim % (60 sn cache) |
+| `GET /api/options?symbol=<sym>` | Vade tarihi listesi (5 dk cache) |
+| `GET /api/options?symbol=<sym>&expiry=<YYYY-MM-DD>` | İlgili vadenin calls/puts zinciri |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+429 (rate-limit) yiyince 30 sn otomatik backoff.
 
-## Learn More
+## Vercel Deploy
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install -g vercel
+vercel              # ilk seferinde proje oluştur
+vercel --prod       # production
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Zorunlu env değişkeni yok; Yahoo Finance public, oturum açma gerekmiyor.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Klasör yapısı
 
-## Deploy on Vercel
+```
+app/
+  api/{search,quote,options}/route.ts
+  layout.tsx, page.tsx, globals.css
+components/
+  charts/{PriceChart,ValueChart,chartSetup}.tsx
+  ui/{Card,ToggleGroup}.tsx
+  ContractPicker.tsx, ContractSummary.tsx, ControlBar.tsx,
+  GreekExplainer.tsx, SliderPanel.tsx, SymbolSearch.tsx, TutorBox.tsx
+hooks/useSimulator.ts        # tek hook'ta tüm state ve aksiyonlar
+lib/
+  black-scholes.ts + .test.ts
+  pricing.ts, tutor.ts, types.ts, format.ts, constants.ts, yahoo.ts
+docs/
+  SPEC.md (tek-doğru-kaynak), prototype.html (v3 referans), CLAUDE_CODE_PROMPT.md
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tasarım kararları
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **BS modunda Δ/Θ/ν ve S spot kilitli**: Bunlar BS hesabının *çıktısı*, girdisi değil. Slider'la oynatmak görsel yanılsama yaratır → disabled, açıklayıcı bilgi kutusu.
+- **ΔIV slider'ı her iki modda etkili**: BS'te `state.iv + dIV` ile fiyatlama, Lineer'de `ν × ΔIV × 100`.
+- **K/Z grafiği maliyete oran %'si**: pnl/(price0 × 100 × contracts). Kontrat adedi artarsa $ değeri büyür, % sabit kalır.
+- **Heatmap doygunluk eşiği**: `max(price0 × 100 × contracts, 500)` — yüksek strike/düşük prim kontratlarında hep okunabilir renkler.
+- **Hisse fiyatı 0'a kilitli**: Y range alt sınırı negatif olamaz.
+- **Put delta range**: `[-1, 0]` (BS doğru output). Call ile çakışmadan slider min/max state.type'a göre.
+
+## v1 dışı / yapılmayanlar
+
+- Kullanıcı girişi / DB yok
+- Spread / çoklu bacak yok
+- Gamma, Rho ekranda yok (lib'de hesaplanabilir)
+- Mobil optimizasyon yok
+- Tek dil: Türkçe
