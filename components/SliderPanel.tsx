@@ -201,33 +201,33 @@ export function SliderPanel(props: SliderPanelProps) {
           />
           <SliderRow
             label="σ IV"
-            min={0.1}
-            max={0.8}
-            step={0.01}
+            min={0.05}
+            max={1.5}
+            step={0.05}
             value={state.iv}
             display={fmtPct(state.iv)}
             onChange={onIVChange}
-            help="Zımni volatilite. Yüksek IV = pahalı opsiyon. Bilanço sonrası IV crush."
+            help="Zımni volatilite. Yüksek IV = pahalı opsiyon. Bilanço sonrası IV crush. Adım %5."
           />
           <SliderRow
             label="T gün"
             min={1}
-            max={Math.max(Math.round(original.days * 1.5), 30)}
+            max={Math.max(Math.round(original.days * 2), 90)}
             step={1}
             value={state.days}
             display={state.days + ' g'}
             onChange={onDaysChange}
-            help="Vadeye kalan gün. Süre azaldıkça Theta büyür."
+            help="Vadeye kalan gün. Süre azaldıkça Theta büyür ve OTM time value buharlaşır — alt grafikteki K/Z eğrisinde belirgin görünür."
           />
           <SliderRow
             label="r faiz"
             min={0}
-            max={0.1}
-            step={0.001}
+            max={0.2}
+            step={0.005}
             value={state.r}
             display={(state.r * 100).toFixed(1) + '%'}
             onChange={onRChange}
-            help="Risksiz faiz oranı. Call primlerini hafif artırır."
+            help="Risksiz faiz oranı. Call primlerini hafif artırır, Put'ları azaltır. Adım %0.5."
           />
           <div className="grid grid-cols-3 gap-2 mt-2">
             <ReadOnlyBox label="Δ" value={state.delta.toFixed(2)} />
