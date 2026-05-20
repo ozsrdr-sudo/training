@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opsiyon Dersi Simülatörü — Prototip v3</title>
+<style>
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f5f4;
+    --color-background-tertiary: #f0efe9;
+    --color-background-info: #e6f1fb;
+    --color-text-primary: #1c1c1a;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-text-info: #0c447c;
+    --color-text-success: #3b6d11;
+    --color-text-danger: #a32d2d;
+    --color-border-tertiary: rgba(0,0,0,0.15);
+    --color-border-secondary: rgba(0,0,0,0.3);
+    --color-border-info: #b5d4f4;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Monaco, Consolas, monospace;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-primary: #1c1c1a;
+      --color-background-secondary: #2c2c2a;
+      --color-background-tertiary: #252523;
+      --color-background-info: #042c53;
+      --color-text-primary: #f5f5f4;
+      --color-text-secondary: #b4b2a9;
+      --color-text-tertiary: #888780;
+      --color-text-info: #b5d4f4;
+      --color-text-success: #c0dd97;
+      --color-text-danger: #f0999;
+      --color-border-tertiary: rgba(255,255,255,0.15);
+      --color-border-secondary: rgba(255,255,255,0.3);
+      --color-border-info: #185fa5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-background-tertiary);
+    color: var(--color-text-primary);
+    margin: 0;
+    padding: 1.5rem;
+    line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 500; margin: 0 0 4px 0; }
+  input[type=range] { width: 100%; }
+  select, button {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    padding: 6px 10px;
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+  }
+  select:hover, button:hover { background: var(--color-background-secondary); }
+  .mode-btn, .pts-btn, .hm-btn { font-size: 12px; padding: 5px 10px; }
+  .mode-btn.active, .pts-btn.active, .hm-btn.active, .tab-btn.active {
+    background: var(--color-background-info);
+    color: var(--color-text-info);
+    border-color: var(--color-border-info);
+  }
+  .tab-btn { font-size: 13px; padding: 6px 12px; }
+  .formula-box {
+    background: var(--color-background-secondary);
+    padding: 10px 12px;
+    border-radius: var(--border-radius-md);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .slider-row { display: grid; grid-template-columns: 70px 1fr 70px; gap: 10px; align-items: center; }
+  .slider-row label { font-size: 13px; }
+  .slider-row .val { font-family: var(--font-mono); font-size: 12px; text-align: right; color: var(--color-text-secondary); }
+  .slider-help { font-size: 11px; color: var(--color-text-secondary); margin: 2px 0 10px 80px; line-height: 1.4; }
+  .tutor-box {
+    background: var(--color-background-info);
+    border-radius: var(--border-radius-md);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--color-text-info);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  .tutor-box strong { font-weight: 500; }
+  .legend { display: flex; gap: 14px; font-size: 11px; color: var(--color-text-secondary); margin-bottom: 6px; flex-wrap: wrap; }
+  .legend .dot, .legend .line-marker { display: inline-block; vertical-align: middle; margin-right: 4px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 2px; }
+  .legend .line-marker { width: 14px; height: 2px; }
+  .card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+<!--
+  Bu dosya Opsiyon Dersi Simülatörü v3 prototipidir.
+  Claude Code projesinde UI/UX referansı olarak kullanılır.
+  Tüm hesaplama mantığı (Black-Scholes, lineer formül, ısı haritası) ve UI etkileşimleri burada çalışır halde.
+  Yahoo Finance entegrasyonu YOK — preset veriler hardcoded.
+  Bu kodun Next.js + TypeScript + Tailwind + Chart.js yapısına çevrilmesi gerekir.
+-->
+
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+  <div>
+    <h1>Opsiyon Dersi Simülatörü</h1>
+    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 0;">Greek'lerin opsiyon fiyatına etkisini interaktif olarak öğrenin</p>
+  </div>
+  <select id="preset" style="min-width: 200px;">
+    <option value="META">META 750C — 17 Oca 2026</option>
+    <option value="MSTR">MSTR 165C — 15 Oca 2027</option>
+    <option value="TSLA">TSLA 750C — 15 Ara 2028</option>
+  </select>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 1rem;">
+  <div style="background: var(--color-background-secondary); padding: 0.6rem; border-radius: var(--border-radius-md);">
+    <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Spot</div>
+    <div style="font-size: 16px; font-weight: 500;" id="spot-display">$755.30</div>
+  </div>
+  <div style="background: var(--color-background-secondary); padding: 0.6rem; border-radius: var(--border-radius-md);">
+    <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Strike</div>
+    <div style="font-size: 16px; font-weight: 500;" id="strike-display">$750.00</div>
+  </div>
+  <div style="background: var(--color-background-secondary); padding: 0.6rem; border-radius: var(--border-radius-md);">
+    <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Prim (maliyet)</div>
+    <div style="font-size: 16px; font-weight: 500;" id="prim-display">$25.40</div>
+  </div>
+  <div style="background: var(--color-background-secondary); padding: 0.6rem; border-radius: var(--border-radius-md);">
+    <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Breakeven</div>
+    <div style="font-size: 16px; font-weight: 500;" id="be-display">$775.40</div>
+  </div>
+  <div style="background: var(--color-background-secondary); padding: 0.6rem; border-radius: var(--border-radius-md);">
+    <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Kalan gün</div>
+    <div style="font-size: 16px; font-weight: 500;" id="days-display">58</div>
+  </div>
+  <div style="background: var(--color-background-secondary); padding: 0.6rem; border-radius: var(--border-radius-md);">
+    <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">IV</div>
+    <div style="font-size: 16px; font-weight: 500;" id="iv-display">32%</div>
+  </div>
+</div>
+
+<div style="display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+  <span style="font-size: 11px; color: var(--color-text-secondary);">Fiyatlama:</span>
+  <button class="mode-btn active" data-mode="linear">Lineer</button>
+  <button class="mode-btn" data-mode="bs">Black-Scholes</button>
+  <span style="font-size: 11px; color: var(--color-text-secondary); margin-left: 12px;">Senaryo:</span>
+  <button class="pts-btn active" data-pts="independent">Bağımsız</button>
+  <button class="pts-btn" data-pts="curve">Eğri</button>
+  <span style="font-size: 11px; color: var(--color-text-secondary); margin-left: 12px;">Y ±:</span>
+  <select id="y-range" style="min-width: 70px; font-size: 12px; padding: 4px 8px;">
+    <option value="15">%15</option>
+    <option value="30" selected>%30</option>
+    <option value="50">%50</option>
+    <option value="100">%100</option>
+  </select>
+  <button id="heatmap-toggle" class="hm-btn active" style="margin-left: auto;">Isı haritası</button>
+  <button id="clear-pts" style="font-size: 11px; padding: 4px 9px;">Noktaları sil</button>
+</div>
+
+<div class="tutor-box" id="tutor">
+  <span id="tutor-text"><strong>Hoş geldin!</strong> META 750 Call kontratını seçtin. Grafiğe tıklayarak senaryolar üret, slider'larla Greek'leri oynat.</span>
+</div>
+
+<div class="card" style="position: relative;">
+  <div style="font-size: 12px; font-weight: 500; margin-bottom: 4px;">Hisse fiyatı senaryosu</div>
+  <div class="legend">
+    <span><span class="line-marker" style="background: #378ADD;"></span>Spot</span>
+    <span><span class="line-marker" style="background: #7F77DD;"></span>Strike</span>
+    <span><span class="line-marker" style="background: #EF9F27;"></span>Breakeven</span>
+    <span><span class="dot" style="background: #3C3489;"></span>Noktalar</span>
+  </div>
+  <div style="position: relative; height: 320px;">
+    <canvas id="chart-price" style="cursor: crosshair;"></canvas>
+    <div id="hover-info" style="position: absolute; top: 8px; right: 8px; font-size: 11px; font-family: var(--font-mono); background: var(--color-background-primary); padding: 6px 8px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 10;">
+      <div id="hover-line1">t = 0 gün</div>
+      <div id="hover-line2">S = $0</div>
+      <div id="hover-line3">Prim ≈ $0</div>
+      <div id="hover-line4" style="font-weight: 500; margin-top: 2px;">K/Z: $0</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div style="font-size: 12px; font-weight: 500; margin-bottom: 4px;">Opsiyon değeri & K/Z (senaryo noktalarına göre)</div>
+  <div class="legend">
+    <span><span class="dot" style="background: #888780;"></span>Orijinal Greek (sabit)</span>
+    <span><span class="dot" style="background: #1D9E75;"></span>Mevcut Greek (slider)</span>
+    <span><span class="line-marker" style="background: #D85A30;"></span>t₀ maliyet</span>
+    <span style="margin-left: auto; color: var(--color-text-tertiary);" id="value-empty-hint">Önce yukarıdaki grafiğe tıkla</span>
+  </div>
+  <div style="position: relative; height: 240px;">
+    <canvas id="chart-value"></canvas>
+  </div>
+</div>
+
+<div class="card" style="padding: 14px;">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+    <button class="tab-btn active" data-tab="greek">Greek Play</button>
+    <button class="tab-btn" data-tab="param">Greek Parametre Play</button>
+    <button id="reset-btn" style="margin-left: auto; font-size: 12px;">Orijinale dön</button>
+  </div>
+
+  <div id="panel-greek">
+    <div class="slider-row">
+      <label>Δ Delta</label>
+      <input type="range" id="s-delta" min="0" max="1" step="0.01" value="0.58" />
+      <span class="val" id="v-delta">0.58</span>
+    </div>
+    <div class="slider-help">Hisse $1 hareket ettiğinde primin kaç dolar hareket eder. 0–1 arası.</div>
+    <div class="slider-row">
+      <label>Θ Theta</label>
+      <input type="range" id="s-theta" min="-0.50" max="0" step="0.01" value="-0.18" />
+      <span class="val" id="v-theta">-0.18</span>
+    </div>
+    <div class="slider-help">Her gün primin kaç dolar erir. Negatif olur. Vadeye yaklaştıkça hızlanır.</div>
+    <div class="slider-row">
+      <label>ν Vega</label>
+      <input type="range" id="s-vega" min="0" max="2" step="0.01" value="0.85" />
+      <span class="val" id="v-vega">0.85</span>
+    </div>
+    <div class="slider-help">IV %1 değiştiğinde primin kaç dolar hareket eder. Etkisini görmek için aşağıdaki ΔIV slider'ını oynat.</div>
+    <div class="slider-row">
+      <label>ΔIV sim</label>
+      <input type="range" id="s-div" min="-0.20" max="0.20" step="0.01" value="0" />
+      <span class="val" id="v-div">+0%</span>
+    </div>
+    <div class="slider-help">Senaryo: IV %X değişirse ne olur? Vega'nın etkisini bu slider'la görürsün.</div>
+    <div class="formula-box" style="margin-top: 8px;">ΔPrim ≈ Δ·(S−S₀) + Θ·Δt + ν·ΔIV</div>
+  </div>
+
+  <div id="panel-param" style="display: none;">
+    <div class="slider-row">
+      <label>S spot</label>
+      <input type="range" id="s-spot" min="600" max="900" step="1" value="755" />
+      <span class="val" id="v-spot">$755</span>
+    </div>
+    <div class="slider-help">Hisse fiyatı. Spot strike'a yaklaştıkça Delta 0.5'e gider.</div>
+    <div class="slider-row">
+      <label>σ IV</label>
+      <input type="range" id="s-iv" min="0.10" max="0.80" step="0.01" value="0.32" />
+      <span class="val" id="v-iv">32%</span>
+    </div>
+    <div class="slider-help">Zımni volatilite. Yüksek IV = pahalı opsiyon. Bilanço sonrası IV crush.</div>
+    <div class="slider-row">
+      <label>T gün</label>
+      <input type="range" id="s-t" min="1" max="180" step="1" value="58" />
+      <span class="val" id="v-t">58 g</span>
+    </div>
+    <div class="slider-help">Vadeye kalan gün. Süre azaldıkça Theta büyür.</div>
+    <div class="slider-row">
+      <label>r faiz</label>
+      <input type="range" id="s-r" min="0" max="0.10" step="0.001" value="0.045" />
+      <span class="val" id="v-r">4.5%</span>
+    </div>
+    <div class="slider-help">Risksiz faiz oranı. Call primlerini hafif artırır.</div>
+    <div style="margin-top: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+      <div class="formula-box" style="text-align:center;">Δ = <span id="c-delta">0.58</span></div>
+      <div class="formula-box" style="text-align:center;">Θ = <span id="c-theta">-0.18</span></div>
+      <div class="formula-box" style="text-align:center;">ν = <span id="c-vega">0.85</span></div>
+    </div>
+  </div>
+</div>
+
+<details style="background: var(--color-background-secondary); padding: 12px 14px; border-radius: var(--border-radius-md); margin-top: 1rem;">
+  <summary style="cursor: pointer; font-size: 14px; font-weight: 500;">Greek'ler nedir? (Tıkla, aç)</summary>
+  <div style="margin-top: 12px; font-size: 13px; line-height: 1.7;">
+    <p><strong>Delta (Δ):</strong> Dayanak varlık fiyatındaki 1 birimlik değişimin, opsiyon fiyatını ne kadar etkileyeceğini gösterir. 0 ile 1 arasında değer alır. Alım opsiyonlarında pozitiftir.</p>
+    <p><strong>Theta (Θ):</strong> Vade tarihine kadar geçen her bir günde opsiyonun zaman değerinden ne kadar kaybedeceğini gösterir. Süre kısaldıkça erime hızlanır.</p>
+    <p style="margin-bottom: 0;"><strong>Vega (ν):</strong> Zımni volatilitenin %1 artması durumunda opsiyon priminin ne kadar değer kazanacağını ölçer. Bilanço gibi kritik dönemlerde belirleyici.</p>
+  </div>
+</details>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function() {
+  function normCdf(x) {
+    const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+    const sign = x<0?-1:1; x=Math.abs(x)/Math.sqrt(2);
+    const t=1/(1+p*x);
+    const y=1-((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+    return 0.5*(1+sign*y);
+  }
+  function normPdf(x){return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI);}
+  function bs(S,K,T,r,sigma,type){
+    if(T<=0){
+      const intr = type==='C'?Math.max(S-K,0):Math.max(K-S,0);
+      return {price:intr, delta: type==='C'?(S>K?1:0):(S<K?-1:0), theta:0, vega:0};
+    }
+    const d1=(Math.log(S/K)+(r+0.5*sigma*sigma)*T)/(sigma*Math.sqrt(T));
+    const d2=d1-sigma*Math.sqrt(T);
+    let price, delta, theta;
+    if(type==='C'){
+      price=S*normCdf(d1)-K*Math.exp(-r*T)*normCdf(d2);
+      delta=normCdf(d1);
+      theta=(-S*normPdf(d1)*sigma/(2*Math.sqrt(T))-r*K*Math.exp(-r*T)*normCdf(d2))/365;
+    } else {
+      price=K*Math.exp(-r*T)*normCdf(-d2)-S*normCdf(-d1);
+      delta=normCdf(d1)-1;
+      theta=(-S*normPdf(d1)*sigma/(2*Math.sqrt(T))+r*K*Math.exp(-r*T)*normCdf(-d2))/365;
+    }
+    const vega=S*normPdf(d1)*Math.sqrt(T)/100;
+    return {price, delta, theta, vega};
+  }
+
+  const presets = {
+    META: { spot: 755.30, strike: 750, days: 58, iv: 0.32, type: 'C', name: 'META 750C — 17 Oca 2026' },
+    MSTR: { spot: 178.50, strike: 165, days: 420, iv: 0.65, type: 'C', name: 'MSTR 165C — 15 Oca 2027' },
+    TSLA: { spot: 412.80, strike: 750, days: 1120, iv: 0.55, type: 'C', name: 'TSLA 750C — 15 Ara 2028' }
+  };
+
+  let current='META', mode='linear', ptsMode='independent', heatmap=true;
+  let activeTab='greek', yRangePct=30;
+  let points=[], original={}, state={}, dIV=0;
+
+  function computeYRange() {
+    const be = state.strike + original.price0;
+    const userMin = original.spot * (1 - yRangePct/100);
+    const userMax = original.spot * (1 + yRangePct/100);
+    const beMin = be * 0.90;
+    const beMax = be * 1.10;
+    return { min: Math.min(userMin, beMin), max: Math.max(userMax, beMax) };
+  }
+
+  function loadPreset(key) {
+    const p = presets[key];
+    const r = 0.045;
+    const T = p.days/365;
+    const g = bs(p.spot, p.strike, T, r, p.iv, p.type);
+    original = { spot:p.spot, strike:p.strike, days:p.days, iv:p.iv, r:r, type:p.type, price0:g.price, delta:g.delta, theta:g.theta, vega:g.vega };
+    state = { ...original };
+    dIV = 0;
+    points = [];
+    updateAll();
+  }
+
+  function linearPriceWithGreeks(S_new, days_passed, dIV_val, greeks) {
+    return original.price0 + greeks.delta*(S_new-original.spot) + greeks.theta*days_passed + greeks.vega*(dIV_val*100);
+  }
+  function bsPriceAt(S_new, days_remaining, IV_new, r) {
+    if (days_remaining <= 0) return state.type==='C' ? Math.max(S_new-state.strike, 0) : Math.max(state.strike-S_new, 0);
+    return bs(S_new, state.strike, days_remaining/365, r, IV_new, state.type).price;
+  }
+  function priceAt(S_new, days_passed, useOriginal) {
+    const days_remaining = state.days - days_passed;
+    if (days_remaining < 0) return null;
+    if (mode === 'linear') {
+      const greeks = useOriginal ? {delta:original.delta,theta:original.theta,vega:original.vega} : {delta:state.delta,theta:state.theta,vega:state.vega};
+      const dIV_use = useOriginal ? 0 : dIV;
+      const p = linearPriceWithGreeks(S_new, days_passed, dIV_use, greeks);
+      return { price: p, pnl: (p - original.price0) * 100 };
+    } else {
+      const IV_use = useOriginal ? original.iv : (state.iv + (activeTab==='greek' ? dIV : 0));
+      const r_use = useOriginal ? original.r : state.r;
+      const p = bsPriceAt(S_new, days_remaining, IV_use, r_use);
+      return { price: p, pnl: (p - original.price0) * 100 };
+    }
+  }
+
+  let chartPrice = null;
+  function buildPriceChart() {
+    const ctx = document.getElementById('chart-price').getContext('2d');
+    if (chartPrice) chartPrice.destroy();
+    const heatmapPlugin = {
+      id: 'heatmap',
+      beforeDatasetsDraw(c) {
+        if (!heatmap) return;
+        const { ctx, chartArea: ca, scales: { x, y } } = c;
+        if (!ca) return;
+        const cols=36, rows=26;
+        const cw=(ca.right-ca.left)/cols, ch=(ca.bottom-ca.top)/rows;
+        for (let i=0;i<cols;i++) for (let j=0;j<rows;j++) {
+          const tVal = x.min + (x.max-x.min)*(i+0.5)/cols;
+          const sVal = y.min + (y.max-y.min)*(1-(j+0.5)/rows);
+          const r = priceAt(sVal, tVal, false);
+          if (!r) continue;
+          const norm = Math.max(-1, Math.min(1, r.pnl/2000));
+          ctx.fillStyle = norm>=0 ? `rgba(99,153,34,${0.05+norm*0.35})` : `rgba(226,75,74,${0.05+(-norm)*0.35})`;
+          ctx.fillRect(ca.left+i*cw, ca.top+j*ch, cw+1, ch+1);
+        }
+      }
+    };
+    const sortedPoints = ptsMode==='curve' ? [...points].sort((a,b)=>a.t-b.t).map(p=>({x:p.t,y:p.s})) : [];
+    const yr = computeYRange();
+    chartPrice = new Chart(ctx, {
+      data: {
+        datasets: [
+          { type:'line', label:'Eğri', data:sortedPoints, borderColor:'#3C3489', borderWidth:2, borderDash:[5,3], pointRadius:0, fill:false, tension:0, order:1 },
+          { type:'line', label:'Strike', data:[{x:0,y:state.strike},{x:state.days,y:state.strike}], borderColor:'#7F77DD', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false, order:2 },
+          { type:'line', label:'Breakeven', data:[{x:0,y:state.strike+original.price0},{x:state.days,y:state.strike+original.price0}], borderColor:'#EF9F27', borderWidth:2, pointRadius:0, fill:false, order:3 },
+          { type:'line', label:'Spot', data:[{x:0,y:original.spot},{x:state.days,y:original.spot}], borderColor:'#378ADD', borderWidth:1.5, pointRadius:0, fill:false, order:4 },
+          { type:'scatter', label:'Noktalar', data:points.map(p=>({x:p.t,y:p.s})), backgroundColor:'#3C3489', borderColor:'#FFFFFF', borderWidth:2, pointRadius:6, pointHoverRadius:8, order:0 }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, animation:false,
+        plugins: { legend:{display:false}, tooltip:{enabled:false} },
+        scales: {
+          x: { type:'linear', min:0, max:state.days, title:{display:true,text:'Zaman (gün)', font:{size:11}}, ticks:{font:{size:10}}, grid:{color:'rgba(150,150,150,0.1)'} },
+          y: {
+            min: yr.min, max: yr.max,
+            title:{display:true, text:'Hisse fiyatı', font:{size:11}},
+            ticks:{font:{size:10}, callback:(v)=>{
+              const pct=((v-original.spot)/original.spot*100).toFixed(0);
+              return '$'+v.toFixed(0)+' ('+(pct>=0?'+':'')+pct+'%)';
+            }},
+            grid:{color:'rgba(150,150,150,0.1)'}
+          }
+        }
+      },
+      plugins:[heatmapPlugin]
+    });
+    const canvas = document.getElementById('chart-price');
+    canvas.onmousemove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = chartPrice.scales.x.getValueForPixel(e.clientX-rect.left);
+      const y = chartPrice.scales.y.getValueForPixel(e.clientY-rect.top);
+      if (x===undefined||y===undefined) return;
+      if (x<0||x>state.days||y<chartPrice.scales.y.min||y>chartPrice.scales.y.max) {
+        document.getElementById('hover-info').style.opacity=0; return;
+      }
+      const r = priceAt(y, x, false);
+      if (!r) { document.getElementById('hover-info').style.opacity=0; return; }
+      document.getElementById('hover-info').style.opacity=1;
+      const pct=((y-original.spot)/original.spot*100).toFixed(1);
+      document.getElementById('hover-line1').textContent='t = '+Math.round(x)+' gün';
+      document.getElementById('hover-line2').textContent='S = $'+y.toFixed(2)+' ('+(pct>=0?'+':'')+pct+'%)';
+      document.getElementById('hover-line3').textContent='Prim ≈ $'+r.price.toFixed(2);
+      const pe=document.getElementById('hover-line4');
+      pe.textContent='K/Z: '+(r.pnl>=0?'+':'')+'$'+r.pnl.toFixed(0);
+      pe.style.color = r.pnl>=0 ? 'var(--color-text-success)' : 'var(--color-text-danger)';
+    };
+    canvas.onmouseleave = () => { document.getElementById('hover-info').style.opacity=0; };
+    canvas.onclick = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = chartPrice.scales.x.getValueForPixel(e.clientX-rect.left);
+      const y = chartPrice.scales.y.getValueForPixel(e.clientY-rect.top);
+      if (x===undefined||y===undefined) return;
+      if (x<0||x>state.days||y<chartPrice.scales.y.min||y>chartPrice.scales.y.max) return;
+      points.push({ t:Math.round(x), s:parseFloat(y.toFixed(2)) });
+      updatePriceChart(); updateValueChart(); updateTutor('point_added');
+    };
+  }
+
+  function updatePriceChart() {
+    if (!chartPrice) return;
+    const sortedPoints = ptsMode==='curve' ? [...points].sort((a,b)=>a.t-b.t).map(p=>({x:p.t,y:p.s})) : [];
+    chartPrice.data.datasets[0].data = sortedPoints;
+    chartPrice.data.datasets[1].data = [{x:0,y:state.strike},{x:state.days,y:state.strike}];
+    chartPrice.data.datasets[2].data = [{x:0,y:state.strike+original.price0},{x:state.days,y:state.strike+original.price0}];
+    chartPrice.data.datasets[3].data = [{x:0,y:original.spot},{x:state.days,y:original.spot}];
+    chartPrice.data.datasets[4].data = points.map(p=>({x:p.t,y:p.s}));
+    const yr = computeYRange();
+    chartPrice.options.scales.x.max = state.days;
+    chartPrice.options.scales.y.min = yr.min;
+    chartPrice.options.scales.y.max = yr.max;
+    chartPrice.update('none');
+  }
+
+  let chartValue = null;
+  function buildValueChart() {
+    const ctx = document.getElementById('chart-value').getContext('2d');
+    if (chartValue) chartValue.destroy();
+    const t0LinePlugin = {
+      id: 't0line',
+      afterDatasetsDraw(c) {
+        const { ctx, chartArea, scales: { y } } = c;
+        if (!chartArea) return;
+        const yPx = y.getPixelForValue(original.price0);
+        if (yPx < chartArea.top || yPx > chartArea.bottom) return;
+        ctx.save();
+        ctx.strokeStyle = '#D85A30';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, yPx);
+        ctx.lineTo(chartArea.right, yPx);
+        ctx.stroke();
+        ctx.restore();
+        ctx.save();
+        ctx.fillStyle = '#D85A30';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText('t0 maliyet: $'+original.price0.toFixed(2), chartArea.right - 4, yPx - 4);
+        ctx.restore();
+      }
+    };
+    chartValue = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [
+          { label:'Orijinal Greek', data:[], borderColor:'#888780', borderWidth:2, borderDash:[5,3], pointRadius:4, pointBackgroundColor:'#888780', tension:0, fill:false },
+          { label:'Mevcut Greek', data:[], borderColor:'#1D9E75', borderWidth:2.5, pointRadius:5, pointBackgroundColor:'#1D9E75', tension:0, fill:false }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, animation:false,
+        plugins: {
+          legend:{display:false},
+          tooltip: { callbacks: {
+            title: (it)=>'Nokta '+(it[0].dataIndex+1)+' · t='+it[0].parsed.x+'g',
+            label: (it)=>{
+              const v = it.parsed.y;
+              const pnl = (v - original.price0)*100;
+              return it.dataset.label+': $'+v.toFixed(2)+' (K/Z '+(pnl>=0?'+':'')+'$'+pnl.toFixed(0)+')';
+            }
+          }}
+        },
+        scales: {
+          x: { type:'linear', min:0, max:state.days, title:{display:true,text:'Zaman (gün)', font:{size:11}}, ticks:{font:{size:10}}, grid:{color:'rgba(150,150,150,0.1)'} },
+          y: { title:{display:true,text:'Opsiyon değeri ($)', font:{size:11}}, ticks:{font:{size:10}, callback:(v)=>'$'+v.toFixed(1)}, grid:{color:'rgba(150,150,150,0.1)'} }
+        }
+      },
+      plugins: [t0LinePlugin]
+    });
+  }
+
+  function updateValueChart() {
+    if (!chartValue) return;
+    const hint = document.getElementById('value-empty-hint');
+    if (points.length === 0) {
+      chartValue.data.datasets[0].data = [];
+      chartValue.data.datasets[1].data = [];
+      hint.style.display = '';
+      chartValue.options.scales.x.max = state.days;
+      chartValue.options.scales.y.min = Math.max(0, original.price0 - 5);
+      chartValue.options.scales.y.max = original.price0 + 5;
+      chartValue.update('none');
+      return;
+    }
+    hint.style.display = 'none';
+    const sorted = [...points].sort((a,b)=>a.t-b.t);
+    const origData = sorted.map(p => { const r=priceAt(p.s,p.t,true); return r?{x:p.t,y:r.price}:null; }).filter(Boolean);
+    const curData = sorted.map(p => { const r=priceAt(p.s,p.t,false); return r?{x:p.t,y:r.price}:null; }).filter(Boolean);
+    chartValue.data.datasets[0].data = origData;
+    chartValue.data.datasets[1].data = curData;
+    const allY = [...origData.map(d=>d.y), ...curData.map(d=>d.y), original.price0, 0];
+    const yMin = Math.min(...allY);
+    const yMax = Math.max(...allY);
+    const padding = Math.max((yMax - yMin) * 0.15, 2);
+    chartValue.options.scales.y.min = Math.max(0, yMin - padding);
+    chartValue.options.scales.y.max = yMax + padding;
+    chartValue.options.scales.x.max = state.days;
+    chartValue.update('none');
+  }
+
+  function updateSummary() {
+    document.getElementById('spot-display').textContent='$'+state.spot.toFixed(2);
+    document.getElementById('strike-display').textContent='$'+state.strike.toFixed(2);
+    document.getElementById('prim-display').textContent='$'+state.price0.toFixed(2);
+    document.getElementById('be-display').textContent='$'+(state.strike+state.price0).toFixed(2);
+    document.getElementById('days-display').textContent=state.days;
+    document.getElementById('iv-display').textContent=(state.iv*100).toFixed(0)+'%';
+  }
+  function updateSliders() {
+    document.getElementById('s-delta').value=state.delta;
+    document.getElementById('v-delta').textContent=state.delta.toFixed(2);
+    document.getElementById('s-theta').value=state.theta;
+    document.getElementById('v-theta').textContent=state.theta.toFixed(2);
+    document.getElementById('s-vega').value=state.vega;
+    document.getElementById('v-vega').textContent=state.vega.toFixed(2);
+    document.getElementById('s-div').value=dIV;
+    document.getElementById('v-div').textContent=(dIV>=0?'+':'')+(dIV*100).toFixed(0)+'%';
+    document.getElementById('s-spot').min=(original.spot*0.5).toFixed(0);
+    document.getElementById('s-spot').max=(original.spot*1.5).toFixed(0);
+    document.getElementById('s-spot').value=state.spot;
+    document.getElementById('v-spot').textContent='$'+Math.round(state.spot);
+    document.getElementById('s-iv').value=state.iv;
+    document.getElementById('v-iv').textContent=(state.iv*100).toFixed(0)+'%';
+    document.getElementById('s-t').max=Math.max(original.days*1.5, 30);
+    document.getElementById('s-t').value=state.days;
+    document.getElementById('v-t').textContent=state.days+' g';
+    document.getElementById('s-r').value=state.r;
+    document.getElementById('v-r').textContent=(state.r*100).toFixed(1)+'%';
+    document.getElementById('c-delta').textContent=state.delta.toFixed(2);
+    document.getElementById('c-theta').textContent=state.theta.toFixed(2);
+    document.getElementById('c-vega').textContent=state.vega.toFixed(2);
+  }
+
+  function updateTutor(event) {
+    const el = document.getElementById('tutor-text');
+    let msg='';
+    if (event==='point_added' && points.length>0) {
+      const last=points[points.length-1];
+      const rO=priceAt(last.s,last.t,true), rC=priceAt(last.s,last.t,false);
+      if (rO && rC) msg=`<strong>${points.length}. nokta:</strong> t=${last.t}g, S=$${last.s.toFixed(2)} → orijinal Greek'lerle prim $${rO.price.toFixed(2)} (K/Z ${rO.pnl>=0?'+':''}$${rO.pnl.toFixed(0)}).`;
+    } else if (event==='delta') msg=`<strong>Delta değişti:</strong> ${original.delta.toFixed(2)} → ${state.delta.toFixed(2)}. Hisse $1 hareket ettiğinde prim ${state.delta.toFixed(2)}$ hareket ediyor.`;
+    else if (event==='theta') msg=`<strong>Theta değişti:</strong> ${original.theta.toFixed(2)} → ${state.theta.toFixed(2)}/gün.`;
+    else if (event==='vega') msg=`<strong>Vega değişti:</strong> ${original.vega.toFixed(2)} → ${state.vega.toFixed(2)}. ΔIV slider'ını oynat — etkisini gör.`;
+    else if (event==='div') { const impact = state.vega * dIV * 100; msg=`<strong>IV ${dIV>=0?'+':''}${(dIV*100).toFixed(0)}% senaryosu:</strong> Primin ≈ $${impact.toFixed(2)} hareket eder.`; }
+    else if (event==='spot') msg=`<strong>Spot $${state.spot.toFixed(0)}:</strong> Greek'ler yeniden hesaplandı — Δ=${state.delta.toFixed(2)}.`;
+    else if (event==='iv') msg=`<strong>IV ${(state.iv*100).toFixed(0)}%:</strong> Vega yeniden hesaplandı: ν=${state.vega.toFixed(2)}.`;
+    else if (event==='t') msg=`<strong>${state.days} gün kaldı:</strong> Theta yeniden hesaplandı: Θ=${state.theta.toFixed(2)}.`;
+    else if (event==='r') msg=`<strong>Faiz ${(state.r*100).toFixed(1)}%:</strong> Call primleri faiz arttıkça artar.`;
+    else if (event==='reset') msg=`<strong>Orijinale döndün.</strong> Δ=${original.delta.toFixed(2)}, Θ=${original.theta.toFixed(2)}, ν=${original.vega.toFixed(2)}.`;
+    else if (event==='mode') msg = mode==='linear' ? `<strong>Lineer mod.</strong>` : `<strong>Black-Scholes mod.</strong>`;
+    else msg=`<strong>Hoş geldin!</strong> ${presets[current].name}. Spot $${state.spot.toFixed(2)}, prim $${state.price0.toFixed(2)}, BE $${(state.strike+state.price0).toFixed(2)}.`;
+    el.innerHTML = msg;
+  }
+
+  function updateAll() { updateSummary(); updateSliders(); buildPriceChart(); buildValueChart(); updateValueChart(); updateTutor(); }
+
+  document.getElementById('preset').addEventListener('change',(e)=>{ current=e.target.value; loadPreset(current); });
+  document.querySelectorAll('.mode-btn').forEach(btn=>{ btn.addEventListener('click',()=>{ document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); mode=btn.dataset.mode; updatePriceChart(); updateValueChart(); updateTutor('mode'); }); });
+  document.querySelectorAll('.pts-btn').forEach(btn=>{ btn.addEventListener('click',()=>{ document.querySelectorAll('.pts-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); ptsMode=btn.dataset.pts; updatePriceChart(); }); });
+  document.getElementById('y-range').addEventListener('change',(e)=>{ yRangePct=parseInt(e.target.value); updatePriceChart(); });
+  document.getElementById('heatmap-toggle').addEventListener('click',(e)=>{ heatmap=!heatmap; e.currentTarget.classList.toggle('active',heatmap); updatePriceChart(); });
+  document.querySelectorAll('.tab-btn').forEach(btn=>{ btn.addEventListener('click',()=>{ document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); activeTab=btn.dataset.tab; document.getElementById('panel-greek').style.display=activeTab==='greek'?'block':'none'; document.getElementById('panel-param').style.display=activeTab==='param'?'block':'none'; updatePriceChart(); updateValueChart(); }); });
+
+  document.getElementById('s-delta').addEventListener('input',(e)=>{ state.delta=parseFloat(e.target.value); document.getElementById('v-delta').textContent=state.delta.toFixed(2); updatePriceChart(); updateValueChart(); updateTutor('delta'); });
+  document.getElementById('s-theta').addEventListener('input',(e)=>{ state.theta=parseFloat(e.target.value); document.getElementById('v-theta').textContent=state.theta.toFixed(2); updatePriceChart(); updateValueChart(); updateTutor('theta'); });
+  document.getElementById('s-vega').addEventListener('input',(e)=>{ state.vega=parseFloat(e.target.value); document.getElementById('v-vega').textContent=state.vega.toFixed(2); updatePriceChart(); updateValueChart(); updateTutor('vega'); });
+  document.getElementById('s-div').addEventListener('input',(e)=>{ dIV=parseFloat(e.target.value); document.getElementById('v-div').textContent=(dIV>=0?'+':'')+(dIV*100).toFixed(0)+'%'; updatePriceChart(); updateValueChart(); updateTutor('div'); });
+
+  function recalcFromParams() {
+    const T=state.days/365;
+    const g=bs(state.spot,state.strike,T,state.r,state.iv,state.type);
+    state.delta=g.delta; state.theta=g.theta; state.vega=g.vega; state.price0=g.price;
+    document.getElementById('c-delta').textContent=state.delta.toFixed(2);
+    document.getElementById('c-theta').textContent=state.theta.toFixed(2);
+    document.getElementById('c-vega').textContent=state.vega.toFixed(2);
+    document.getElementById('prim-display').textContent='$'+state.price0.toFixed(2);
+    document.getElementById('be-display').textContent='$'+(state.strike+state.price0).toFixed(2);
+    document.getElementById('spot-display').textContent='$'+state.spot.toFixed(2);
+    document.getElementById('days-display').textContent=state.days;
+    document.getElementById('iv-display').textContent=(state.iv*100).toFixed(0)+'%';
+  }
+  document.getElementById('s-spot').addEventListener('input',(e)=>{ state.spot=parseFloat(e.target.value); document.getElementById('v-spot').textContent='$'+Math.round(state.spot); recalcFromParams(); updatePriceChart(); updateValueChart(); updateTutor('spot'); });
+  document.getElementById('s-iv').addEventListener('input',(e)=>{ state.iv=parseFloat(e.target.value); document.getElementById('v-iv').textContent=(state.iv*100).toFixed(0)+'%'; recalcFromParams(); updatePriceChart(); updateValueChart(); updateTutor('iv'); });
+  document.getElementById('s-t').addEventListener('input',(e)=>{ state.days=parseInt(e.target.value); document.getElementById('v-t').textContent=state.days+' g'; recalcFromParams(); updatePriceChart(); updateValueChart(); updateTutor('t'); });
+  document.getElementById('s-r').addEventListener('input',(e)=>{ state.r=parseFloat(e.target.value); document.getElementById('v-r').textContent=(state.r*100).toFixed(1)+'%'; recalcFromParams(); updatePriceChart(); updateValueChart(); updateTutor('r'); });
+  document.getElementById('reset-btn').addEventListener('click',()=>{ state={...original}; dIV=0; updateAll(); updateTutor('reset'); });
+  document.getElementById('clear-pts').addEventListener('click',()=>{ points=[]; updatePriceChart(); updateValueChart(); });
+
+  loadPreset('META');
+})();
+</script>
+</body>
+</html>
