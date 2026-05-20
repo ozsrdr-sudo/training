@@ -9,14 +9,15 @@ export interface ValueChartProps {
   original: ContractData;
   state: ContractData;
   points: Point[];
+  contracts: number;
   priceAt: (args: { S_new: number; days_passed: number; useOriginal: boolean }) => PriceResult | null;
 }
 
-export function ValueChart({ original, state, points, priceAt }: ValueChartProps) {
+export function ValueChart({ original, state, points, contracts, priceAt }: ValueChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
-  const propsRef = useRef({ original, state, points, priceAt });
-  propsRef.current = { original, state, points, priceAt };
+  const propsRef = useRef({ original, state, points, contracts, priceAt });
+  propsRef.current = { original, state, points, contracts, priceAt };
 
   useEffect(() => {
     ensureChartRegistered();
@@ -73,8 +74,9 @@ export function ValueChart({ original, state, points, priceAt }: ValueChartProps
     let yMin: number;
     let yMax: number;
     if (points.length === 0) {
-      yMin = -500;
-      yMax = 500;
+      const guess = Math.max(500 * contracts, 100);
+      yMin = -guess;
+      yMax = guess;
     } else {
       const allY = [...origData.map((d) => d.y), ...curData.map((d) => d.y), 0];
       const lo = Math.min(...allY);
@@ -125,13 +127,21 @@ export function ValueChart({ original, state, points, priceAt }: ValueChartProps
                 const pnl = item.parsed.y ?? 0;
                 const raw = item.raw as { price?: number } | undefined;
                 const price = raw?.price ?? 0;
+                const o = propsRef.current.original;
+                const cost = o.price0 * 100 * Math.max(1, propsRef.current.contracts);
+                const pct = cost > 0 ? (pnl / cost) * 100 : 0;
+                const pnlSign = pnl >= 0 ? '+' : '−';
+                const pctSign = pct >= 0 ? '+' : '−';
                 return (
                   item.dataset.label +
                   ': K/Z ' +
-                  (pnl >= 0 ? '+' : '') +
+                  pnlSign +
                   '$' +
-                  pnl.toFixed(0) +
-                  ' (prim $' +
+                  Math.abs(pnl).toFixed(0) +
+                  ' (' +
+                  pctSign +
+                  Math.abs(pct).toFixed(1) +
+                  '%, prim $' +
                   price.toFixed(2) +
                   ')'
                 );
@@ -151,13 +161,24 @@ export function ValueChart({ original, state, points, priceAt }: ValueChartProps
           y: {
             min: yMin,
             max: yMax,
-            title: { display: true, text: 'K/Z ($, 1 kontrat = 100 hisse)', font: { size: 11 } },
+            title: { display: true, text: 'K/Z ($ ve toplam maliyete % oran)', font: { size: 11 } },
             ticks: {
               font: { size: 10 },
               callback: (v) => {
                 const num = typeof v === 'number' ? v : parseFloat(String(v));
-                const sign = num > 0 ? '+' : num < 0 ? '−' : '';
-                return sign + '$' + Math.abs(num).toFixed(0);
+                const dolSign = num > 0 ? '+' : num < 0 ? '−' : '';
+                const cost = original.price0 * 100 * Math.max(1, contracts);
+                const pct = cost > 0 ? (num / cost) * 100 : 0;
+                const pctSign = pct > 0 ? '+' : pct < 0 ? '−' : '';
+                return (
+                  dolSign +
+                  '$' +
+                  Math.abs(num).toFixed(0) +
+                  ' (' +
+                  pctSign +
+                  Math.abs(pct).toFixed(0) +
+                  '%)'
+                );
               },
             },
             grid: { color: 'rgba(150,150,150,0.1)' },
@@ -173,7 +194,7 @@ export function ValueChart({ original, state, points, priceAt }: ValueChartProps
       chart.destroy();
       chartRef.current = null;
     };
-  }, [original, state, points, priceAt]);
+  }, [original, state, points, contracts, priceAt]);
 
   return (
     <div

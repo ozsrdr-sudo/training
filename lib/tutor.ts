@@ -12,6 +12,7 @@ export interface TutorContext {
   heatmap: boolean;
   yRangePct: YRangePct;
   contractName: string;
+  contracts: number;
 }
 
 function fmt(n: number, d = 2): string {
@@ -23,14 +24,14 @@ function sign(n: number): string {
 }
 
 export function buildTutorMessage(ctx: TutorContext): string {
-  const { event, original, state, points, dIV, mode, contractName } = ctx;
+  const { event, original, state, points, dIV, mode, contractName, contracts } = ctx;
 
   switch (event) {
     case 'point_added': {
       if (points.length === 0) return defaultMsg(ctx);
       const last = points[points.length - 1];
-      const rO = priceAt({ S_new: last.s, days_passed: last.t, useOriginal: true, mode, dIV, original, state });
-      const rC = priceAt({ S_new: last.s, days_passed: last.t, useOriginal: false, mode, dIV, original, state });
+      const rO = priceAt({ S_new: last.s, days_passed: last.t, useOriginal: true, mode, dIV, original, state, contracts });
+      const rC = priceAt({ S_new: last.s, days_passed: last.t, useOriginal: false, mode, dIV, original, state, contracts });
       if (!rO || !rC) return defaultMsg(ctx);
       const itm = state.type === 'C' ? last.s > state.strike : last.s < state.strike;
       return `<strong>${points.length}. nokta:</strong> t=${last.t}g, S=$${fmt(last.s)} → orijinal Greek'lerle prim $${fmt(rO.price)} (K/Z ${sign(rO.pnl)}$${rO.pnl.toFixed(0)}). Pozisyon ${itm ? 'ITM' : 'OTM'}.`;

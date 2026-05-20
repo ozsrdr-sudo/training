@@ -130,14 +130,18 @@ export function SliderPanel(props: SliderPanelProps) {
           )}
           <SliderRow
             label="Δ Delta"
-            min={0}
-            max={1}
+            min={state.type === 'C' ? 0 : -1}
+            max={state.type === 'C' ? 1 : 0}
             step={0.01}
             value={state.delta}
             display={state.delta.toFixed(2)}
             onChange={onDeltaChange}
             disabled={greekDisabled}
-            help={'Hisse $1 hareket ettiğinde primin kaç dolar hareket eder. 0–1 arası.' + greekHelpSuffix}
+            help={
+              (state.type === 'C'
+                ? 'Call delta 0–1: Hisse $1 yukarı → prim ≈ Δ$ yukarı.'
+                : 'Put delta −1 … 0: Hisse $1 yukarı → prim ≈ Δ$ yukarı (Δ negatif olduğu için prim aşağı).') + greekHelpSuffix
+            }
           />
           <SliderRow
             label="Θ Theta"

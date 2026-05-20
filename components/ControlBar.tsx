@@ -50,13 +50,16 @@ export function ControlBar({
       <select
         value={yRangePct}
         onChange={(e) => onYRangeChange(parseInt(e.target.value, 10) as YRangePct)}
-        className="min-w-[70px] text-xs px-2 py-1 rounded-md border border-border-tertiary bg-bg-primary text-fg-primary"
+        className="min-w-[80px] text-xs px-2 py-1 rounded-md border border-border-tertiary bg-bg-primary text-fg-primary"
         style={{ borderWidth: '0.5px' }}
       >
         <option value={15}>%15</option>
         <option value={30}>%30</option>
         <option value={50}>%50</option>
         <option value={100}>%100</option>
+        <option value={200}>%200</option>
+        <option value={500}>%500</option>
+        <option value={1000}>%1000</option>
       </select>
       <button
         type="button"

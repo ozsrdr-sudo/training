@@ -34,7 +34,7 @@ export interface ContractData {
 
 export type PricingMode = 'linear' | 'bs';
 export type PointsMode = 'independent' | 'curve';
-export type YRangePct = 15 | 30 | 50 | 100;
+export type YRangePct = 15 | 30 | 50 | 100 | 200 | 500 | 1000;
 export type ActiveTab = 'greek' | 'param';
 
 export interface SimulatorState {

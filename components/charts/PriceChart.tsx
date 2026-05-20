@@ -12,22 +12,19 @@ export interface PriceChartProps {
   ptsMode: PointsMode;
   yRangePct: YRangePct;
   heatmap: boolean;
+  contracts: number;
   priceAt: (args: { S_new: number; days_passed: number; useOriginal: boolean }) => PriceResult | null;
   onAddPoint: (t: number, s: number) => void;
 }
 
 function computeYRange(state: ContractData, yRangePct: YRangePct) {
-  const be = state.strike + state.price0;
-  const userMin = state.spot * (1 - yRangePct / 100);
+  const userMin = Math.max(0, state.spot * (1 - yRangePct / 100));
   const userMax = state.spot * (1 + yRangePct / 100);
-  return {
-    min: Math.min(userMin, be * 0.9),
-    max: Math.max(userMax, be * 1.1),
-  };
+  return { min: userMin, max: userMax };
 }
 
 export function PriceChart(props: PriceChartProps) {
-  const { original, state, points, ptsMode, yRangePct, heatmap, priceAt } = props;
+  const { original, state, points, ptsMode, yRangePct, heatmap, contracts, priceAt } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const hoverRef = useRef<HTMLDivElement>(null);
@@ -53,7 +50,10 @@ export function PriceChart(props: PriceChartProps) {
         const rows = 26;
         const cw = (area.right - area.left) / cols;
         const ch = (area.bottom - area.top) / rows;
-        const denom = Math.max(propsRef.current.original.price0 * 100, 500);
+        const denom = Math.max(
+          propsRef.current.original.price0 * 100 * Math.max(1, propsRef.current.contracts),
+          500
+        );
         const drawCtx = c.ctx;
         for (let i = 0; i < cols; i++) {
           for (let j = 0; j < rows; j++) {
@@ -236,7 +236,7 @@ export function PriceChart(props: PriceChartProps) {
       chart.destroy();
       chartRef.current = null;
     };
-  }, [original, state, points, ptsMode, yRangePct, heatmap, priceAt]);
+  }, [original, state, points, ptsMode, yRangePct, heatmap, contracts, priceAt]);
 
   return (
     <div

@@ -39,12 +39,15 @@ export interface PriceAtArgs {
   dIV: number;
   original: ContractData;
   state: ContractData;
+  contracts: number;
 }
 
 export function priceAt(args: PriceAtArgs): PriceResult | null {
-  const { S_new, days_passed, useOriginal, mode, dIV, original, state } = args;
+  const { S_new, days_passed, useOriginal, mode, dIV, original, state, contracts } = args;
   const days_remaining = state.days - days_passed;
   if (days_remaining < 0) return null;
+
+  const multiplier = 100 * Math.max(1, contracts);
 
   if (mode === 'linear') {
     const greeks = useOriginal
@@ -52,11 +55,11 @@ export function priceAt(args: PriceAtArgs): PriceResult | null {
       : { delta: state.delta, theta: state.theta, vega: state.vega };
     const dIV_use = useOriginal ? 0 : dIV;
     const p = linearPriceWithGreeks(S_new, days_passed, dIV_use, original, greeks);
-    return { price: p, pnl: (p - original.price0) * 100 };
+    return { price: p, pnl: (p - original.price0) * multiplier };
   }
 
   const IV_use = useOriginal ? original.iv : state.iv + dIV;
   const r_use = useOriginal ? original.r : state.r;
   const p = bsPriceAt(S_new, days_remaining, IV_use, r_use, state);
-  return { price: p, pnl: (p - original.price0) * 100 };
+  return { price: p, pnl: (p - original.price0) * multiplier };
 }

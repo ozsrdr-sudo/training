@@ -2,12 +2,13 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { blackScholes } from '@/lib/black-scholes';
-import { DEFAULT_RISK_FREE_RATE, getPreset, PRESETS } from '@/lib/presets';
+import { DEFAULT_RISK_FREE_RATE, EMPTY_CONTRACT_NAME } from '@/lib/constants';
 import { priceAt as priceAtFn, type PriceAtArgs } from '@/lib/pricing';
 import { buildTutorMessage } from '@/lib/tutor';
 import type {
   ActiveTab,
   ContractData,
+  OptionType,
   Point,
   PointsMode,
   PriceResult,
@@ -16,53 +17,68 @@ import type {
   YRangePct,
 } from '@/lib/types';
 
-function buildContractData(presetKey: string): { contractName: string; data: ContractData } {
-  const p = getPreset(presetKey);
-  const r = DEFAULT_RISK_FREE_RATE;
-  const g = blackScholes(p.spot, p.strike, p.days / 365, r, p.iv, p.type);
-  return {
-    contractName: p.name,
-    data: {
-      spot: p.spot,
-      strike: p.strike,
-      days: p.days,
-      iv: p.iv,
-      r,
-      type: p.type,
-      price0: g.price,
-      delta: g.delta,
-      theta: g.theta,
-      vega: g.vega,
-    },
-  };
-}
+const EMPTY_CONTRACT: ContractData = {
+  spot: 0,
+  strike: 0,
+  days: 0,
+  iv: 0,
+  r: DEFAULT_RISK_FREE_RATE,
+  type: 'C',
+  price0: 0,
+  delta: 0,
+  theta: 0,
+  vega: 0,
+};
 
-export function useSimulator(initialPresetKey: string = PRESETS[0].key) {
-  const initial = useMemo(() => buildContractData(initialPresetKey), [initialPresetKey]);
-
-  const [currentPresetKey, setCurrentPresetKey] = useState(initialPresetKey);
-  const [contractName, setContractName] = useState(initial.contractName);
-  const [original, setOriginal] = useState<ContractData>(initial.data);
-  const [state, setState] = useState<ContractData>({ ...initial.data });
+export function useSimulator() {
+  const [hasContract, setHasContract] = useState(false);
+  const [contractName, setContractName] = useState(EMPTY_CONTRACT_NAME);
+  const [original, setOriginal] = useState<ContractData>(EMPTY_CONTRACT);
+  const [state, setState] = useState<ContractData>(EMPTY_CONTRACT);
   const [points, setPoints] = useState<Point[]>([]);
   const [dIV, setDIV] = useState(0);
   const [mode, setMode] = useState<PricingMode>('linear');
   const [ptsMode, setPtsMode] = useState<PointsMode>('independent');
   const [heatmap, setHeatmap] = useState(true);
-  const [yRangePct, setYRangePct] = useState<YRangePct>(30);
+  const [yRangePct, setYRangePct] = useState<YRangePct>(100);
   const [activeTab, setActiveTab] = useState<ActiveTab>('greek');
+  const [contracts, setContracts] = useState<number>(1);
   const [tutorEvent, setTutorEvent] = useState<TutorEvent>('init');
 
-  const loadPreset = useCallback((key: string) => {
-    const { contractName: name, data } = buildContractData(key);
-    setCurrentPresetKey(key);
-    setContractName(name);
-    setOriginal(data);
-    setState({ ...data });
-    setPoints([]);
-    setDIV(0);
-    setTutorEvent('preset');
-  }, []);
+  const loadCustomContract = useCallback(
+    (params: {
+      name: string;
+      spot: number;
+      strike: number;
+      days: number;
+      iv: number;
+      type: OptionType;
+      r?: number;
+    }) => {
+      const r = params.r ?? DEFAULT_RISK_FREE_RATE;
+      const g = blackScholes(params.spot, params.strike, params.days / 365, r, params.iv, params.type);
+      const data: ContractData = {
+        spot: params.spot,
+        strike: params.strike,
+        days: params.days,
+        iv: params.iv,
+        r,
+        type: params.type,
+        price0: g.price,
+        delta: g.delta,
+        theta: g.theta,
+        vega: g.vega,
+      };
+      setHasContract(true);
+      setContractName(params.name);
+      setOriginal(data);
+      setState({ ...data });
+      setPoints([]);
+      setDIV(0);
+      setTutorEvent('preset');
+    },
+    []
+  );
 
   const reset = useCallback(() => {
     setState({ ...original });
@@ -133,10 +149,11 @@ export function useSimulator(initialPresetKey: string = PRESETS[0].key) {
   }, []);
 
   const priceAt = useCallback(
-    (args: Omit<PriceAtArgs, 'mode' | 'dIV' | 'original' | 'state'>): PriceResult | null => {
-      return priceAtFn({ ...args, mode, dIV, original, state });
+    (args: Omit<PriceAtArgs, 'mode' | 'dIV' | 'original' | 'state' | 'contracts'>): PriceResult | null => {
+      if (!hasContract) return null;
+      return priceAtFn({ ...args, mode, dIV, original, state, contracts });
     },
-    [mode, dIV, original, state]
+    [hasContract, mode, dIV, original, state, contracts]
   );
 
   const tutorMessage = useMemo(
@@ -152,12 +169,13 @@ export function useSimulator(initialPresetKey: string = PRESETS[0].key) {
         heatmap,
         yRangePct,
         contractName,
+        contracts,
       }),
-    [tutorEvent, original, state, points, dIV, mode, ptsMode, heatmap, yRangePct, contractName]
+    [tutorEvent, original, state, points, dIV, mode, ptsMode, heatmap, yRangePct, contractName, contracts]
   );
 
   return {
-    currentPresetKey,
+    hasContract,
     contractName,
     original,
     state,
@@ -168,8 +186,10 @@ export function useSimulator(initialPresetKey: string = PRESETS[0].key) {
     heatmap,
     yRangePct,
     activeTab,
+    contracts,
+    setContracts,
     tutorMessage,
-    loadPreset,
+    loadCustomContract,
     reset,
     addPoint,
     clearPoints,
