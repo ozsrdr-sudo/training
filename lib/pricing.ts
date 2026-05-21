@@ -49,13 +49,33 @@ export function priceAt(args: PriceAtArgs): PriceResult | null {
   if (days_remaining < 0) return null;
 
   const multiplier = 100 * Math.max(1, contracts);
+  const intrinsic =
+    src.type === 'C' ? Math.max(S_new - src.strike, 0) : Math.max(src.strike - S_new, 0);
+
+  // Vade gününde her iki modda da fiyat = intrinsic (zaman değeri 0)
+  if (days_remaining <= 0) {
+    return { price: intrinsic, pnl: (intrinsic - original.price0) * multiplier };
+  }
 
   if (mode === 'linear') {
     const greeks = useOriginal
       ? { delta: original.delta, theta: original.theta, vega: original.vega }
       : { delta: state.delta, theta: state.theta, vega: state.vega };
     const dIV_use = useOriginal ? 0 : dIV;
-    const p = linearPriceWithGreeks(S_new, days_passed, dIV_use, original, greeks);
+    const pRaw = linearPriceWithGreeks(S_new, days_passed, dIV_use, original, greeks);
+
+    // Lineer yaklaşım uzun horizonda saçma fiyatlar üretebilir; no-arbitrage sınırları:
+    //   alt: opsiyon hiçbir zaman intrinsic'in altında işlem görmez
+    //   üst: zaman değeri en fazla orijinal-TV × √(kalan/toplam) kadar olabilir (√t decay)
+    const originalIntrinsic =
+      original.type === 'C'
+        ? Math.max(original.spot - original.strike, 0)
+        : Math.max(original.strike - original.spot, 0);
+    const originalTimeValue = Math.max(0, original.price0 - originalIntrinsic);
+    const remainingFrac = original.days > 0 ? days_remaining / original.days : 0;
+    const maxTimeValue = originalTimeValue * Math.sqrt(Math.max(0, remainingFrac));
+    const cap = intrinsic + maxTimeValue;
+    const p = Math.max(intrinsic, Math.min(pRaw, cap));
     return { price: p, pnl: (p - original.price0) * multiplier };
   }
 

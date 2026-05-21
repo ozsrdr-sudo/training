@@ -38,6 +38,38 @@ export function PriceChart(props: PriceChartProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const xAxisDatesPlugin: Plugin = {
+      id: 'xAxisDates',
+      afterDraw(c) {
+        const xScale = c.scales.x;
+        const area = c.chartArea;
+        if (!area || !xScale) return;
+        const ticks = xScale.ticks;
+        const drawCtx = c.ctx;
+        drawCtx.save();
+        drawCtx.font = '9px monospace';
+        drawCtx.fillStyle = 'rgba(100, 116, 139, 0.85)';
+        drawCtx.textAlign = 'right';
+        drawCtx.textBaseline = 'middle';
+        for (const tick of ticks) {
+          const xPx = xScale.getPixelForValue(tick.value);
+          if (xPx < area.left - 2 || xPx > area.right + 2) continue;
+          const date = new Date(Date.now() + tick.value * 86_400_000);
+          const dateStr = date.toLocaleDateString('tr-TR', {
+            day: '2-digit',
+            month: 'short',
+            year: '2-digit',
+          });
+          drawCtx.save();
+          drawCtx.translate(xPx + 4, area.bottom + 28);
+          drawCtx.rotate(-Math.PI * 45 / 180);
+          drawCtx.fillText(dateStr, 0, 0);
+          drawCtx.restore();
+        }
+        drawCtx.restore();
+      },
+    };
+
     const heatmapPlugin: Plugin = {
       id: 'heatmap',
       beforeDatasetsDraw(c) {
@@ -151,6 +183,7 @@ export function PriceChart(props: PriceChartProps) {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
+        layout: { padding: { bottom: 72, right: 20 } },
         plugins: {
           legend: { display: false },
           tooltip: { enabled: false },
@@ -160,8 +193,18 @@ export function PriceChart(props: PriceChartProps) {
             type: 'linear',
             min: 0,
             max: state.days,
-            title: { display: true, text: 'Zaman (gün)', font: { size: 11 } },
-            ticks: { font: { size: 10 } },
+            title: { display: true, text: 'Kalan gün', font: { size: 11 } },
+            ticks: {
+              font: { size: 10 },
+              stepSize: Math.max(1, Math.round(state.days) <= 20 ? 1 : Math.ceil(Math.round(state.days) / 20)),
+              maxTicksLimit: 22,
+              autoSkip: false,
+              callback: (v) => {
+                const days = typeof v === 'number' ? v : parseFloat(String(v));
+                if (!Number.isFinite(days)) return '';
+                return String(Math.round(state.days) - Math.round(days));
+              },
+            },
             grid: { color: 'rgba(150,150,150,0.1)' },
           },
           y: {
@@ -180,7 +223,7 @@ export function PriceChart(props: PriceChartProps) {
           },
         },
       },
-      plugins: [heatmapPlugin],
+      plugins: [heatmapPlugin, xAxisDatesPlugin],
     };
 
     const chart = new Chart(ctx, config);
@@ -250,7 +293,7 @@ export function PriceChart(props: PriceChartProps) {
         <span><span className="inline-block w-3.5 h-0.5 align-middle mr-1" style={{ background: '#EF9F27' }} />Breakeven</span>
         <span><span className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{ background: '#3C3489' }} />Noktalar</span>
       </div>
-      <div className="relative" style={{ height: 320 }}>
+      <div className="relative" style={{ height: 380 }}>
         <canvas ref={canvasRef} style={{ cursor: 'crosshair' }} />
         <div
           ref={hoverRef}
