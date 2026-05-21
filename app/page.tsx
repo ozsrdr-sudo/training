@@ -22,6 +22,15 @@ export default function Page() {
     : null;
   const lastPointPnl = lastResult ? lastResult.pnl : null;
 
+  let moneynessTag = '';
+  if (sim.hasContract) {
+    const { spot, strike, type, iv } = sim.state;
+    const pctDiff = Math.abs(spot - strike) / strike;
+    const isATM = pctDiff < 0.01;
+    const isITM = !isATM && (type === 'C' ? spot > strike : spot < strike);
+    moneynessTag = ` · ${isATM ? 'ATM' : isITM ? 'ITM' : 'OTM'} · IV ${(iv * 100).toFixed(0)}%`;
+  }
+
   return (
     <main className="min-h-screen p-6">
       <div className="max-w-[1100px] mx-auto">
@@ -34,7 +43,7 @@ export default function Page() {
           </div>
           <p className="text-[13px] text-fg-secondary m-0 mt-1">
             Greek&apos;lerin opsiyon fiyatına etkisini interaktif olarak öğrenin
-            {sim.hasContract && ` · ${sim.contractName}`}
+            {sim.hasContract && ` · ${sim.contractName}${moneynessTag}`}
           </p>
         </div>
 

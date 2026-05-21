@@ -50,6 +50,7 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
   const [expiry, setExpiry] = useState<string>('');
   const [type, setType] = useState<OptionType>('C');
   const [strike, setStrike] = useState<number | null>(null);
+  const [strikeCount, setStrikeCount] = useState<number>(30);
   const [loadingExpiries, setLoadingExpiries] = useState(true);
   const [loadingChain, setLoadingChain] = useState(false);
   const [error, setError] = useState<string>('');
@@ -126,8 +127,8 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
     const list = type === 'C' ? data?.calls ?? [] : data?.puts ?? [];
     if (!data) return list;
     const spot = data.spot;
-    return [...list].sort((a, b) => Math.abs(a.strike - spot) - Math.abs(b.strike - spot)).slice(0, 30).sort((a, b) => a.strike - b.strike);
-  }, [data, type]);
+    return [...list].sort((a, b) => Math.abs(a.strike - spot) - Math.abs(b.strike - spot)).slice(0, strikeCount).sort((a, b) => a.strike - b.strike);
+  }, [data, type, strikeCount]);
 
   const selectedRow = useMemo(() => rows.find((r) => r.strike === strike) ?? null, [rows, strike]);
 
@@ -219,7 +220,20 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
           </label>
 
           <label className="text-xs">
-            <span className="block text-fg-secondary mb-1">Strike (ATM yakın 30)</span>
+            <span className="block text-fg-secondary mb-1 flex items-center gap-1.5">
+              <span>Strike (ATM yakın {strikeCount})</span>
+              <select
+                value={strikeCount}
+                onChange={(e) => setStrikeCount(parseInt(e.target.value, 10))}
+                className="text-[10px] px-1 py-0.5 rounded border border-border-tertiary bg-bg-primary text-fg-secondary"
+                style={{ borderWidth: '0.5px' }}
+                title="Listede gösterilecek strike sayısı (ATM'ye en yakınlar)"
+              >
+                <option value={30}>30</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+              </select>
+            </span>
             <select
               value={strike ?? ''}
               onChange={(e) => setStrike(parseFloat(e.target.value))}
@@ -254,10 +268,49 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
           ) : (
             <>
               Seçili: <strong>{symbol} {selectedRow.strike}{type}</strong>
-              {' · '}IV {(selectedRow.impliedVolatility * 100).toFixed(1)}%
-              {selectedRow.lastPrice !== null && ` · son $${selectedRow.lastPrice.toFixed(2)}`}
-              {selectedRow.bid !== null && selectedRow.ask !== null &&
-                ` · bid/ask $${selectedRow.bid.toFixed(2)}/$${selectedRow.ask.toFixed(2)}`}
+              {' · '}
+              <span title="Implied Volatility — opsiyon fiyatından çözülen yıllık beklenen oynaklık">
+                IV (örtük oynaklık) {(selectedRow.impliedVolatility * 100).toFixed(1)}%
+              </span>
+              {selectedRow.lastPrice !== null && (
+                <span title="Son gerçekleşen işlem fiyatı (prim)">
+                  {' · '}son işlem ${selectedRow.lastPrice.toFixed(2)}
+                </span>
+              )}
+              {selectedRow.bid !== null && selectedRow.ask !== null && (
+                <span title="Bid = piyasadaki en yüksek alış teklifi, Ask = en düşük satış isteği">
+                  {' · '}alış/satış ${selectedRow.bid.toFixed(2)}/${selectedRow.ask.toFixed(2)}
+                </span>
+              )}
+              <div className="mt-2 p-2 rounded bg-bg-secondary text-[10px] text-fg-tertiary leading-relaxed space-y-1">
+                <div>
+                  <strong className="text-fg-secondary">{selectedRow.strike}{type}</strong> —
+                  {' '}Strike {selectedRow.strike}$ {type === 'C' ? 'Call (alma hakkı)' : 'Put (satma hakkı)'}.
+                  {selectedRow.inTheMoney
+                    ? ' ITM: şu an kârda taraf (spot ' + (type === 'C' ? '>' : '<') + ' strike).'
+                    : ' OTM: şu an kârsız taraf.'}
+                </div>
+                <div>
+                  <strong className="text-fg-secondary">IV</strong> (Implied Volatility / örtük oynaklık) —
+                  {' '}piyasanın bu opsiyon fiyatından geriye doğru çözdüğü <em>yıllık</em> beklenen oynaklık.
+                  {' '}Yüksek IV = büyük hareket bekleniyor = prim pahalı.
+                </div>
+                {selectedRow.lastPrice !== null && (
+                  <div>
+                    <strong className="text-fg-secondary">son işlem</strong> —
+                    {' '}son gerçekleşen alım-satımın <em>primi</em> (1 kontrat = 100 hisse,
+                    yani gerçek maliyet ${(selectedRow.lastPrice * 100).toFixed(0)}).
+                  </div>
+                )}
+                {selectedRow.bid !== null && selectedRow.ask !== null && (
+                  <div>
+                    <strong className="text-fg-secondary">alış/satış</strong> (bid/ask) —
+                    {' '}alıcının en yüksek teklifi / satıcının en düşük isteği.
+                    {' '}Aradaki fark (spread) ${(selectedRow.ask - selectedRow.bid).toFixed(2)};
+                    {' '}dar spread = iyi likidite.
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>

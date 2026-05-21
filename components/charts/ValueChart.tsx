@@ -78,11 +78,11 @@ export function ValueChart({ original, state, points, contracts, priceAt }: Valu
       yMin = -guess;
       yMax = guess;
     } else {
-      const allY = [...origData.map((d) => d.y), ...curData.map((d) => d.y), 0];
+      const allY = [...origData.map((d) => d.y), ...curData.map((d) => d.y)];
       const lo = Math.min(...allY);
       const hi = Math.max(...allY);
-      const range = Math.max(hi - lo, 100);
-      const padding = Math.max(range * 0.1, 20);
+      const range = Math.max(hi - lo, 1);
+      const padding = Math.max(range * 0.12, 1);
       yMin = lo - padding;
       yMax = hi + padding;
     }
