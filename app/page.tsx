@@ -5,6 +5,7 @@ import { ContractPicker } from '@/components/ContractPicker';
 import { ContractSummary } from '@/components/ContractSummary';
 import { ControlBar } from '@/components/ControlBar';
 import { GreekExplainer } from '@/components/GreekExplainer';
+import { ManualPointEntry } from '@/components/ManualPointEntry';
 import { SliderPanel } from '@/components/SliderPanel';
 import { SymbolSearch } from '@/components/SymbolSearch';
 import { TutorBox } from '@/components/TutorBox';
@@ -135,6 +136,12 @@ export default function Page() {
             />
 
             <TutorBox message={sim.tutorMessage} />
+
+            <ManualPointEntry
+              maxDays={sim.state.days}
+              defaultSpot={sim.state.spot}
+              onAddPoint={sim.addPoint}
+            />
 
             <PriceChart
               original={sim.original}

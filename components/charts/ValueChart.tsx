@@ -26,6 +26,38 @@ export function ValueChart({ original, state, points, contracts, priceAt }: Valu
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const xAxisDatesPlugin: Plugin = {
+      id: 'xAxisDates',
+      afterDraw(c) {
+        const xScale = c.scales.x;
+        const area = c.chartArea;
+        if (!area || !xScale) return;
+        const ticks = xScale.ticks;
+        const drawCtx = c.ctx;
+        drawCtx.save();
+        drawCtx.font = '9px monospace';
+        drawCtx.fillStyle = 'rgba(100, 116, 139, 0.85)';
+        drawCtx.textAlign = 'right';
+        drawCtx.textBaseline = 'middle';
+        for (const tick of ticks) {
+          const xPx = xScale.getPixelForValue(tick.value);
+          if (xPx < area.left - 2 || xPx > area.right + 2) continue;
+          const date = new Date(Date.now() + tick.value * 86_400_000);
+          const dateStr = date.toLocaleDateString('tr-TR', {
+            day: '2-digit',
+            month: 'short',
+            year: '2-digit',
+          });
+          drawCtx.save();
+          drawCtx.translate(xPx + 4, area.bottom + 28);
+          drawCtx.rotate(-Math.PI * 45 / 180);
+          drawCtx.fillText(dateStr, 0, 0);
+          drawCtx.restore();
+        }
+        drawCtx.restore();
+      },
+    };
+
     const zeroLinePlugin: Plugin = {
       id: 'zeroline',
       afterDatasetsDraw(c) {
@@ -118,6 +150,7 @@ export function ValueChart({ original, state, points, contracts, priceAt }: Valu
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
+        layout: { padding: { bottom: 72, right: 20 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -154,8 +187,18 @@ export function ValueChart({ original, state, points, contracts, priceAt }: Valu
             type: 'linear',
             min: 0,
             max: state.days,
-            title: { display: true, text: 'Zaman (gün)', font: { size: 11 } },
-            ticks: { font: { size: 10 } },
+            title: { display: true, text: 'Kalan gün', font: { size: 11 } },
+            ticks: {
+              font: { size: 10 },
+              stepSize: Math.max(1, Math.round(state.days) <= 20 ? 1 : Math.ceil(Math.round(state.days) / 20)),
+              maxTicksLimit: 22,
+              autoSkip: false,
+              callback: (v) => {
+                const days = typeof v === 'number' ? v : parseFloat(String(v));
+                if (!Number.isFinite(days)) return '';
+                return String(Math.round(state.days) - Math.round(days));
+              },
+            },
             grid: { color: 'rgba(150,150,150,0.1)' },
           },
           y: {
@@ -185,7 +228,7 @@ export function ValueChart({ original, state, points, contracts, priceAt }: Valu
           },
         },
       },
-      plugins: [zeroLinePlugin],
+      plugins: [zeroLinePlugin, xAxisDatesPlugin],
     };
 
     const chart = new Chart(ctx, config);
@@ -210,7 +253,7 @@ export function ValueChart({ original, state, points, contracts, priceAt }: Valu
           <span className="ml-auto text-fg-tertiary">Önce yukarıdaki grafiğe tıkla</span>
         )}
       </div>
-      <div className="relative" style={{ height: 240 }}>
+      <div className="relative" style={{ height: 320 }}>
         <canvas ref={canvasRef} />
       </div>
     </div>
