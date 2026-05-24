@@ -9,7 +9,7 @@ import { ManualPointEntry } from '@/components/ManualPointEntry';
 import { SliderPanel } from '@/components/SliderPanel';
 import { SymbolSearch } from '@/components/SymbolSearch';
 import { TutorBox } from '@/components/TutorBox';
-import { VisitStats } from '@/components/VisitStats';
+import { VisitTracker } from '@/components/VisitTracker';
 import { PriceChart } from '@/components/charts/PriceChart';
 import { ValueChart } from '@/components/charts/ValueChart';
 import { useSimulator } from '@/hooks/useSimulator';
@@ -186,7 +186,7 @@ export default function Page() {
           </>
         )}
 
-        <VisitStats />
+        <VisitTracker />
       </div>
     </main>
   );

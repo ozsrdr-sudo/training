@@ -41,19 +41,19 @@ npm run build
 | `GET /api/options?symbol=<sym>` | Vade tarihi listesi (5 dk cache) |
 | `GET /api/options?symbol=<sym>&expiry=<YYYY-MM-DD>` | İlgili vadenin calls/puts zinciri |
 | `POST /api/track` | Ziyaret sayar, IP'yi tekil set'e ekler (KV varsa) |
-| `GET /api/stats` | `{ visits, uniqueIps, configured }` döner |
 
 429 (rate-limit) yiyince 30 sn otomatik backoff.
 
 ## Ziyaret istatistikleri (opsiyonel)
 
-Sayfanın alt kısmında küçük bir rozet olarak toplam ziyaret ve tekil IP sayısı gösterilir. Veri **Upstash Redis** (Vercel Marketplace) üzerinde saklanır.
+Anasayfa açıldığında client tarafı `/api/track`'a sessiz bir POST atar. Toplam ziyaret ve tekil IP sayısı **kullanıcıya gösterilmez**; veri **Upstash Redis** (Vercel Marketplace) üzerinde saklanır ve sadece `/stats` admin sayfasından okunur.
 
 **Kurulum:**
 
 1. Vercel proje sayfası → **Storage** → **Create Database** → Marketplace'ten **Upstash Redis** seç → projeyi bağla.
 2. Entegrasyon `KV_REST_API_URL` ve `KV_REST_API_TOKEN` env değişkenlerini otomatik ekler.
-3. Bir sonraki deploy'da rozet aktif olur. Env yoksa özellik sessizce kapanır, hata vermez.
+3. (Opsiyonel) `STATS_KEY` env'i set edersen `/stats` sayfası `?key=<değer>` ister, yoksa 404 döner. Set etmezsen sayfa unlisted ama açık olur.
+4. Bir sonraki deploy'da `/stats` (veya `/stats?key=...`) erişilebilir olur. KV yoksa özellik sessizce kapanır.
 
 Aynı sekmede çift sayım olmasın diye client `sessionStorage` flag'i kullanır. Anahtarlar: `visits:total` (INCR sayaç) ve `visits:ips` (SADD tekil IP set'i).
 
