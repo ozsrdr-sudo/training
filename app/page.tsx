@@ -9,6 +9,7 @@ import { ManualPointEntry } from '@/components/ManualPointEntry';
 import { SliderPanel } from '@/components/SliderPanel';
 import { SymbolSearch } from '@/components/SymbolSearch';
 import { TutorBox } from '@/components/TutorBox';
+import { VisitStats } from '@/components/VisitStats';
 import { PriceChart } from '@/components/charts/PriceChart';
 import { ValueChart } from '@/components/charts/ValueChart';
 import { useSimulator } from '@/hooks/useSimulator';
@@ -184,6 +185,8 @@ export default function Page() {
             <GreekExplainer />
           </>
         )}
+
+        <VisitStats />
       </div>
     </main>
   );
