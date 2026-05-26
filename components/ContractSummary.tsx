@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import { fmtPct, fmtUsd } from '@/lib/format';
 import type { ContractData } from '@/lib/types';
 
@@ -55,6 +56,37 @@ export function ContractSummary({
   const moneyness = isATM ? 'ATM' : isITM ? 'ITM' : 'OTM';
   const moneynessClass = isATM ? 'text-fg-info' : isITM ? 'text-fg-success' : 'text-fg-danger';
   const moneynessLabel = isATM ? 'At The Money (strike≈spot)' : isITM ? 'In The Money (kârda)' : 'Out of The Money (kârsız)';
+
+  const greekRows: Array<{ symbol: string; name: string; perShare: string; perContract: string; hint: string }> = [
+    {
+      symbol: 'Δ',
+      name: 'Delta',
+      perShare: state.delta.toFixed(4),
+      perContract: (state.delta * 100).toFixed(2),
+      hint: 'Hisse $1 hareket → prim ≈ Δ$ hareket. IB Risk Navigator per-contract gösterir.',
+    },
+    {
+      symbol: 'Γ',
+      name: 'Gamma',
+      perShare: state.gamma.toFixed(5),
+      perContract: (state.gamma * 100).toFixed(3),
+      hint: 'Hisse $1 hareket → Delta\'nın değişimi. Δ\'nın eğimi.',
+    },
+    {
+      symbol: 'Θ',
+      name: 'Theta',
+      perShare: state.theta.toFixed(4) + '/gün',
+      perContract: (state.theta * 100).toFixed(2) + '/gün',
+      hint: 'Her gün primden ne kadar erir (zaman değeri kaybı). Negatif normal.',
+    },
+    {
+      symbol: 'ν',
+      name: 'Vega',
+      perShare: state.vega.toFixed(4),
+      perContract: (state.vega * 100).toFixed(2),
+      hint: 'IV %1 hareket → primin değişimi.',
+    },
+  ];
 
   return (
     <div className="mb-4">
@@ -113,6 +145,29 @@ export function ContractSummary({
           valueClassName={pnlClass}
           hint="Fiyat grafiğine son tıkladığın noktanın, mevcut Greek (slider) değerleriyle K/Z'si. Yeşil=kâr, kırmızı=zarar."
         />
+      </div>
+
+      <div className="mt-2 bg-bg-secondary rounded-md p-2.5">
+        <div className="flex items-baseline justify-between mb-2 flex-wrap gap-1">
+          <div className="text-[11px] text-fg-secondary">Greek&apos;ler</div>
+          <div className="text-[10px] text-fg-tertiary leading-snug">
+            IB Risk Navigator <em>per kontrat</em> (×100) gösterir; bu uygulama temel olarak <em>per hisse</em> hesaplar. 1 kontrat = 100 hisse.
+          </div>
+        </div>
+        <div className="grid gap-1 text-[11px] font-mono" style={{ gridTemplateColumns: '60px 1fr 1fr' }}>
+          <div className="text-fg-tertiary">&nbsp;</div>
+          <div className="text-fg-tertiary text-right pr-2">per hisse</div>
+          <div className="text-fg-tertiary text-right pr-2">per kontrat (×100)</div>
+          {greekRows.map((g) => (
+            <Fragment key={g.symbol}>
+              <div className="text-fg-secondary" title={g.hint}>
+                <strong className="text-fg-primary">{g.symbol}</strong> {g.name}
+              </div>
+              <div className="text-right pr-2 text-fg-primary">{g.perShare}</div>
+              <div className="text-right pr-2 text-fg-primary">{g.perContract}</div>
+            </Fragment>
+          ))}
+        </div>
       </div>
     </div>
   );
