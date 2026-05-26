@@ -150,17 +150,6 @@ export function ContractSummary({
             <div><strong className="text-fg-secondary">OTM</strong> Out of The Money — kârsız taraf</div>
             <div><strong className="text-fg-secondary">IV</strong> Implied Volatility — örtük yıllık oynaklık (yüksek = prim pahalı)</div>
             <div className="mt-1 text-fg-secondary">Bu kontrat: <strong>{moneynessLabel}</strong></div>
-            <div className="text-fg-secondary">
-              IV %{ivPct.toFixed(0)} <span className={`font-medium ${ivTier.klass}`}>({ivTier.label})</span> — {ivTier.note}.
-            </div>
-            {rvPct !== null && ratio !== null && ratioTier !== null && (
-              <div className="text-fg-secondary">
-                RV %{rvPct.toFixed(0)} (son {state.rvWindow} gün gerçekleşen) · IV/RV {ratio.toFixed(2)}× <span className={`font-medium ${ratioTier.klass}`}>({ratioTier.label})</span> — opsiyon hissenin son hareketine göre {ratio >= 1 ? `%${((ratio - 1) * 100).toFixed(0)} pahalı` : `%${((1 - ratio) * 100).toFixed(0)} ucuz`}.
-              </div>
-            )}
-            <div className="mt-1.5 text-fg-tertiary leading-snug">
-              <em>Not:</em> bu mutlak değil, başlangıç heuristic&apos;i. Daha doğru karar için <strong>IV rank</strong> (son 1 yıllık IV penceresinin bu noktası) gerekirdi, o veri Yahoo&apos;da yok. Mevcut değerler eğitim amaçlı hesaplamadır; gerçek IV rank için ücretli kaynaklar (Tastytrade, IB TWS, ORATS, IVolatility) gerekir.
-            </div>
           </div>
         </div>
         <Stat
@@ -179,6 +168,47 @@ export function ContractSummary({
           valueClassName={pnlClass}
           hint="Fiyat grafiğine son tıkladığın noktanın, mevcut Greek (slider) değerleriyle K/Z'si. Yeşil=kâr, kırmızı=zarar."
         />
+      </div>
+
+      <div className="mt-2 bg-bg-secondary rounded-md p-3 text-[12px] leading-relaxed">
+        <div className="text-[11px] text-fg-secondary mb-2">IV analizi</div>
+        <div
+          className="grid gap-x-4 gap-y-1.5 mb-2"
+          style={{ gridTemplateColumns: rvPct !== null ? 'repeat(auto-fit, minmax(160px, 1fr))' : '1fr' }}
+        >
+          <div>
+            <span className="text-fg-tertiary">IV </span>
+            <span className="text-fg-primary font-medium">%{ivPct.toFixed(0)}</span>
+            <span className={`ml-1.5 font-medium ${ivTier.klass}`}>({ivTier.label})</span>
+            <div className="text-fg-secondary text-[11px] mt-0.5">{ivTier.note}.</div>
+          </div>
+          {rvPct !== null && (
+            <div>
+              <span className="text-fg-tertiary">RV </span>
+              <span className="text-fg-primary font-medium">%{rvPct.toFixed(0)}</span>
+              <span className="ml-1.5 text-fg-tertiary text-[11px]">(son {state.rvWindow} gün)</span>
+              <div className="text-fg-secondary text-[11px] mt-0.5">Hissenin gerçekleşen yıllık oynaklığı.</div>
+            </div>
+          )}
+          {ratio !== null && ratioTier !== null && (
+            <div>
+              <span className="text-fg-tertiary">IV/RV </span>
+              <span className="text-fg-primary font-medium">{ratio.toFixed(2)}×</span>
+              <span className={`ml-1.5 font-medium ${ratioTier.klass}`}>({ratioTier.label})</span>
+              <div className="text-fg-secondary text-[11px] mt-0.5">
+                Opsiyon hissenin son hareketine göre {ratio >= 1 ? `%${((ratio - 1) * 100).toFixed(0)} pahalı` : `%${((1 - ratio) * 100).toFixed(0)} ucuz`}.
+              </div>
+            </div>
+          )}
+          {rvPct === null && (
+            <div className="text-fg-tertiary text-[11px]">
+              RV verisi alınamadı (Yahoo geçmiş kapanışlar yok), IV/RV oranı gösterilemiyor.
+            </div>
+          )}
+        </div>
+        <div className="text-[11px] text-fg-tertiary leading-snug pt-1.5 border-t border-border-tertiary" style={{ borderTopWidth: '0.5px' }}>
+          <em>Not:</em> bu mutlak değil, başlangıç heuristic&apos;i. Daha doğru karar için <strong>IV rank</strong> (son 1 yıllık IV penceresinin bu noktası) gerekirdi, o veri Yahoo&apos;da yok. Mevcut değerler eğitim amaçlı hesaplamadır; gerçek IV rank için ücretli kaynaklar (Tastytrade, IB TWS, ORATS, IVolatility) gerekir.
+        </div>
       </div>
 
       <div className="mt-2 bg-bg-secondary rounded-md p-2.5">
