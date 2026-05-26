@@ -229,8 +229,9 @@ export function SliderPanel(props: SliderPanelProps) {
             onChange={onRChange}
             help="Risksiz faiz oranı. Call primlerini hafif artırır, Put'ları azaltır. Adım %0.5."
           />
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <div className="grid grid-cols-4 gap-2 mt-2">
             <ReadOnlyBox label="Δ" value={state.delta.toFixed(2)} />
+            <ReadOnlyBox label="Γ" value={state.gamma.toFixed(4)} />
             <ReadOnlyBox label="Θ" value={state.theta.toFixed(2)} />
             <ReadOnlyBox label="ν" value={state.vega.toFixed(2)} />
           </div>

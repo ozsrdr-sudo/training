@@ -26,6 +26,7 @@ const EMPTY_CONTRACT: ContractData = {
   type: 'C',
   price0: 0,
   delta: 0,
+  gamma: 0,
   theta: 0,
   vega: 0,
 };
@@ -66,6 +67,7 @@ export function useSimulator() {
         type: params.type,
         price0: g.price,
         delta: g.delta,
+        gamma: g.gamma,
         theta: g.theta,
         vega: g.vega,
       };
@@ -117,7 +119,7 @@ export function useSimulator() {
     setState((s) => {
       const next = { ...s, ...patch };
       const g = blackScholes(next.spot, next.strike, next.days / 365, next.r, next.iv, next.type);
-      return { ...next, price0: g.price, delta: g.delta, theta: g.theta, vega: g.vega };
+      return { ...next, price0: g.price, delta: g.delta, gamma: g.gamma, theta: g.theta, vega: g.vega };
     });
     setTutorEvent(ev);
   }, []);

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { impliedVol } from '@/lib/black-scholes';
+import { DEFAULT_RISK_FREE_RATE } from '@/lib/constants';
 import type { OptionType } from '@/lib/types';
 
 interface OptionContractRow {
@@ -43,6 +45,16 @@ function daysBetween(today: Date, expiry: string): number {
 function fmtExpiry(s: string): string {
   const d = new Date(s + 'T00:00:00');
   return d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function midPrice(row: OptionContractRow): number | null {
+  if (row.bid !== null && row.ask !== null && row.bid > 0 && row.ask > 0) {
+    return (row.bid + row.ask) / 2;
+  }
+  if (row.lastPrice !== null && row.lastPrice > 0) return row.lastPrice;
+  if (row.ask !== null && row.ask > 0) return row.ask;
+  if (row.bid !== null && row.bid > 0) return row.bid;
+  return null;
 }
 
 export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps) {
@@ -132,6 +144,16 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
 
   const selectedRow = useMemo(() => rows.find((r) => r.strike === strike) ?? null, [rows, strike]);
 
+  const mid = useMemo(() => (selectedRow ? midPrice(selectedRow) : null), [selectedRow]);
+
+  const solvedIV = useMemo(() => {
+    if (!data || !selectedRow || mid === null || !expiry) return null;
+    const days = daysBetween(new Date(), expiry);
+    return impliedVol(mid, data.spot, selectedRow.strike, days / 365, DEFAULT_RISK_FREE_RATE, type);
+  }, [data, selectedRow, mid, expiry, type]);
+
+  const effectiveIV = solvedIV ?? selectedRow?.impliedVolatility ?? null;
+
   const canLoad =
     !loadingExpiries &&
     !loadingChain &&
@@ -139,17 +161,17 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
     data &&
     expiry &&
     selectedRow &&
-    selectedRow.impliedVolatility !== null;
+    effectiveIV !== null;
 
   const handleLoad = () => {
-    if (!canLoad || !data || !selectedRow) return;
+    if (!canLoad || !data || !selectedRow || effectiveIV === null) return;
     const days = daysBetween(new Date(), expiry);
     onLoad({
       name: `${data.symbol} ${selectedRow.strike}${type} — ${fmtExpiry(expiry)}`,
       spot: data.spot,
       strike: selectedRow.strike,
       days,
-      iv: selectedRow.impliedVolatility ?? 0.3,
+      iv: effectiveIV,
       type,
     });
   };
@@ -261,17 +283,27 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
 
       {selectedRow && !loadingChain && (
         <div className="mt-3 text-[11px] text-fg-secondary leading-snug">
-          {selectedRow.impliedVolatility === null ? (
+          {effectiveIV === null ? (
             <span className="text-fg-danger">
-              Bu kontrat için IV yok — Yahoo veri eksik, başka strike/expiry seç.
+              Bu kontrat için IV yok — Yahoo veri eksik ve bid/ask mid'den çözülemedi, başka strike/expiry seç.
             </span>
           ) : (
             <>
               Seçili: <strong>{symbol} {selectedRow.strike}{type}</strong>
               {' · '}
-              <span title="Implied Volatility — opsiyon fiyatından çözülen yıllık beklenen oynaklık">
-                IV (örtük oynaklık) {(selectedRow.impliedVolatility * 100).toFixed(1)}%
+              <span title={solvedIV !== null ? 'Bid/ask mid fiyatından geriye doğru çözülen örtük oynaklık (canlı). Yahoo\'nun stale impliedVolatility alanı yerine kullanılır.' : 'Yahoo\'nun raporladığı IV (genelde son işlem fiyatından çözülmüş, stale olabilir).'}>
+                IV {(effectiveIV * 100).toFixed(1)}% <span className="text-fg-tertiary">({solvedIV !== null ? 'mid\'den çözüldü' : 'Yahoo'})</span>
               </span>
+              {solvedIV !== null && selectedRow.impliedVolatility !== null && Math.abs(solvedIV - selectedRow.impliedVolatility) > 0.005 && (
+                <span className="text-fg-tertiary" title="Yahoo'nun raporladığı IV (son işlem fiyatından çözülmüş, mid'le farklı olabilir).">
+                  {' · '}Yahoo IV {(selectedRow.impliedVolatility * 100).toFixed(1)}%
+                </span>
+              )}
+              {mid !== null && (
+                <span title="Bid/ask mid (IV solver bunu kullandı).">
+                  {' · '}mid ${mid.toFixed(2)}
+                </span>
+              )}
               {selectedRow.lastPrice !== null && (
                 <span title="Son gerçekleşen işlem fiyatı (prim)">
                   {' · '}son işlem ${selectedRow.lastPrice.toFixed(2)}

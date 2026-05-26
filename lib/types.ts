@@ -3,6 +3,7 @@ export type OptionType = 'C' | 'P';
 export interface Greeks {
   price: number;
   delta: number;
+  gamma: number;
   theta: number;
   vega: number;
 }
@@ -28,6 +29,7 @@ export interface ContractData {
   type: OptionType;
   price0: number;
   delta: number;
+  gamma: number;
   theta: number;
   vega: number;
 }

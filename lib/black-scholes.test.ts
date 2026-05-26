@@ -1,4 +1,4 @@
-import { blackScholes, normCdf } from './black-scholes';
+import { blackScholes, impliedVol, normCdf } from './black-scholes';
 
 describe('normCdf', () => {
   it('matches known values', () => {
@@ -85,5 +85,45 @@ describe('Vega birim: ondalık IV puanı başına (sigma=0.20 → vega ≈ S·φ
   it('ATM 1-yıl, S=100 için vega ≈ 0.3752', () => {
     const g = blackScholes(100, 100, 1, 0.05, 0.20, 'C');
     expect(g.vega).toBeCloseTo(0.3752, 3);
+  });
+});
+
+describe('Gamma — Γ = φ(d1) / (S·σ·√T)', () => {
+  it('ATM 1-yıl, S=100, σ=0.20 için gamma ≈ 0.01876', () => {
+    const g = blackScholes(100, 100, 1, 0.05, 0.20, 'C');
+    expect(g.gamma).toBeCloseTo(0.01876, 4);
+  });
+
+  it('Call ve put gamma eşit (parity)', () => {
+    const c = blackScholes(120, 100, 0.5, 0.04, 0.30, 'C');
+    const p = blackScholes(120, 100, 0.5, 0.04, 0.30, 'P');
+    expect(c.gamma).toBeCloseTo(p.gamma, 10);
+  });
+
+  it('Vade sonunda gamma sıfır', () => {
+    expect(blackScholes(100, 100, 0, 0.05, 0.20, 'C').gamma).toBe(0);
+  });
+});
+
+describe('impliedVol — bisection solver', () => {
+  it('BS fiyatından geri çözünce orijinal σ çıkar (ATM call)', () => {
+    const sigma = 0.30;
+    const price = blackScholes(100, 100, 1, 0.05, sigma, 'C').price;
+    expect(impliedVol(price, 100, 100, 1, 0.05, 'C')).toBeCloseTo(sigma, 4);
+  });
+
+  it('ITM put için de doğru çözer', () => {
+    const sigma = 0.45;
+    const price = blackScholes(90, 100, 0.5, 0.03, sigma, 'P').price;
+    expect(impliedVol(price, 90, 100, 0.5, 0.03, 'P')).toBeCloseTo(sigma, 4);
+  });
+
+  it('Arbitrage sınırı altında null döndürür', () => {
+    expect(impliedVol(0.01, 200, 100, 1, 0.05, 'C')).toBeNull();
+  });
+
+  it('Negatif veya sıfır fiyat null döndürür', () => {
+    expect(impliedVol(0, 100, 100, 1, 0.05, 'C')).toBeNull();
+    expect(impliedVol(-1, 100, 100, 1, 0.05, 'C')).toBeNull();
   });
 });
