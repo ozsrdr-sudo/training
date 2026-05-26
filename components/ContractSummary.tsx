@@ -57,6 +57,18 @@ export function ContractSummary({
   const moneynessClass = isATM ? 'text-fg-info' : isITM ? 'text-fg-success' : 'text-fg-danger';
   const moneynessLabel = isATM ? 'At The Money (strike≈spot)' : isITM ? 'In The Money (kârda)' : 'Out of The Money (kârsız)';
 
+  const ivPct = state.iv * 100;
+  let ivTier: { label: string; klass: string; note: string };
+  if (ivPct < 30) {
+    ivTier = { label: 'düşük', klass: 'text-fg-success', note: 'prim ucuz tarafta, piyasa büyük hareket beklemiyor' };
+  } else if (ivPct < 50) {
+    ivTier = { label: 'orta', klass: 'text-fg-info', note: 'tipik seviye, prim normal' };
+  } else if (ivPct < 80) {
+    ivTier = { label: 'yüksek', klass: 'text-brand-be', note: 'prim pahalıya yakın, piyasa belirgin hareket fiyatlıyor (kazanç dönemi, volatil sektör vb.)' };
+  } else {
+    ivTier = { label: 'çok yüksek', klass: 'text-fg-danger', note: 'prim pahalı, piyasa büyük hareket bekliyor (yaklaşan event, dar şirket, spekülasyon). Long opsiyon riski yüksek; event sonrası IV crush olabilir' };
+  }
+
   const greekRows: Array<{ symbol: string; name: string; perShare: string; perContract: string; hint: string }> = [
     {
       symbol: 'Δ',
@@ -127,6 +139,9 @@ export function ContractSummary({
             <div><strong className="text-fg-secondary">OTM</strong> Out of The Money — kârsız taraf</div>
             <div><strong className="text-fg-secondary">IV</strong> Implied Volatility — örtük yıllık oynaklık (yüksek = prim pahalı)</div>
             <div className="mt-1 text-fg-secondary">Bu kontrat: <strong>{moneynessLabel}</strong></div>
+            <div className="text-fg-secondary">
+              IV %{ivPct.toFixed(0)} <span className={`font-medium ${ivTier.klass}`}>({ivTier.label})</span> — {ivTier.note}.
+            </div>
           </div>
         </div>
         <Stat
