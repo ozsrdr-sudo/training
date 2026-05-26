@@ -146,8 +146,8 @@ export function SliderPanel(props: SliderPanelProps) {
             disabled={greekDisabled}
             help={
               (state.type === 'C'
-                ? `Call delta: hisse $1 yukarı → pozisyonun ${(state.delta * positionScale).toFixed(0)}$ kazanır. Hesap: ${fmtFormula(state.delta)}.`
-                : `Put delta: hisse $1 yukarı → pozisyonun ${(state.delta * positionScale).toFixed(0)}$ değişir (negatif olduğu için kaybeder). Hesap: ${fmtFormula(state.delta)}.`) + greekHelpSuffix
+                ? `Call delta: hisse $1 yukarı → pozisyonun ${(state.delta * positionScale).toFixed(0)}$ kazanır, $1 aşağı → ${(state.delta * positionScale).toFixed(0)}$ kaybeder (küçük hareketlerde simetrik, büyükte gamma simetriyi bozar). Hesap: ${fmtFormula(state.delta)}.`
+                : `Put delta: hisse $1 yukarı → pozisyon ${(state.delta * positionScale).toFixed(0)}$ (delta negatif olduğu için kaybeder), $1 aşağı → ${Math.abs(state.delta * positionScale).toFixed(0)}$ kazanır. Hesap: ${fmtFormula(state.delta)}.`) + greekHelpSuffix
             }
           />
           <SliderRow
