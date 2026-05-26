@@ -16,6 +16,8 @@ interface CacheEntry<T> {
 const quoteCache = new Map<string, CacheEntry<QuoteResult>>();
 const optionsCache = new Map<string, CacheEntry<OptionsResult>>();
 const searchCache = new Map<string, CacheEntry<SearchResult[]>>();
+const historicalCache = new Map<string, CacheEntry<number[]>>();
+const HISTORICAL_TTL_MS = 30 * 60_000;
 
 const rateLimitedUntil = { ts: 0 };
 
@@ -192,6 +194,34 @@ export async function searchSymbols(query: string): Promise<SearchResult[]> {
       }));
     writeCache(searchCache, key, list, SEARCH_TTL_MS);
     return list;
+  } catch (err) {
+    if (err instanceof YahooError) throw err;
+    handleError(err);
+  }
+}
+
+export async function getHistoricalCloses(symbol: string, days: number): Promise<number[]> {
+  const lookback = Math.max(days + 5, 10);
+  const key = `${symbol.toUpperCase()}|${lookback}`;
+  const cached = readCache(historicalCache, key);
+  if (cached) return cached;
+  if (isRateLimited()) {
+    throw new YahooError('rate_limit', 'Rate limit etkin, 30s bekle.');
+  }
+  try {
+    const now = new Date();
+    const period1 = new Date(now.getTime() - (lookback + 7) * 86_400_000);
+    const rows: any[] = await yf.historical(symbol.toUpperCase(), {
+      period1,
+      period2: now,
+      interval: '1d',
+    });
+    const closes = (rows ?? [])
+      .map((r) => (typeof r?.close === 'number' && r.close > 0 ? r.close : null))
+      .filter((c): c is number => c !== null)
+      .slice(-lookback);
+    writeCache(historicalCache, key, closes, HISTORICAL_TTL_MS);
+    return closes;
   } catch (err) {
     if (err instanceof YahooError) throw err;
     handleError(err);

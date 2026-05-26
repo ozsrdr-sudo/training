@@ -86,7 +86,7 @@ export function SliderPanel(props: SliderPanelProps) {
 
   const greekDisabled = mode === 'bs';
   const greekHelpSuffix = greekDisabled
-    ? ' (BS modunda kilitli — Greek\'ler BS hesabının çıktısıdır, girdisi değil.)'
+    ? ' (BS modunda kilitli, Greek\'ler BS hesabının çıktısıdır, girdisi değil.)'
     : '';
 
   const N = Math.max(1, contracts);
@@ -176,14 +176,14 @@ export function SliderPanel(props: SliderPanelProps) {
             <label className="text-[13px] text-fg-tertiary" title="Gamma — Delta'nın türevi. S/σ/T/σ'den hesaplanır, slider'la oynatılmaz.">Γ Gamma</label>
             <div className="text-[11px] text-fg-secondary leading-snug">
               Hisse $1 hareket → Delta&apos;nın değişimi (Δ&apos;nın eğimi).{' '}
-              <strong>BS</strong> (Black-Scholes — opsiyon fiyatlama modeli, Fischer Black + Myron Scholes 1973) den hesaplanır;
+              <strong>BS</strong> (Black-Scholes, opsiyon fiyatlama modeli, Fischer Black + Myron Scholes 1973) den hesaplanır;
               Yahoo Greek vermez, biz lokalde S/K/T/σ/r&apos;den çözüyoruz.{' '}
               <strong>Pratik kullanım: hedging.</strong> 1 kontrat aldın, delta&apos;n {(original.delta * 100).toFixed(0)} (={original.delta.toFixed(2)}×100).
               Hisse $1 yukarı çıktı → yeni delta {(original.delta * 100).toFixed(0)} + {(original.gamma * 100).toFixed(2)} = {(original.delta * 100 + original.gamma * 100).toFixed(2)}.
               Hedge kuruyorsan kaç hisse short almak gerektiği bu kadar değişir. IB de bu yüzden per-kontrat gösterir, trader doğrudan kullanır.
               Hesap: {fmtFormula(original.gamma, 4, 2)}.
               <div className="mt-1 text-fg-tertiary">
-                <em>Not:</em> Greek Play tab&apos;ında Δ/Θ/ν bağımsız scrub edilir, Γ sabit kalır. Gerçek BS bağlantısını görmek için <strong>Greek Parametre Play</strong> tab&apos;ına geç — S/σ/T değiştir, Γ da koordineli yenilenir.
+                <em>Not:</em> Greek Play tab&apos;ında Δ/Θ/ν bağımsız scrub edilir, Γ sabit kalır. Gerçek BS bağlantısını görmek için <strong>Greek Parametre Play</strong> tab&apos;ına geç, S/σ/T değiştir, Γ da koordineli yenilenir.
               </div>
             </div>
             <span className="font-mono text-xs text-right text-fg-secondary">{(original.gamma * positionScale).toFixed(2)}</span>

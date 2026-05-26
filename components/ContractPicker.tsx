@@ -29,11 +29,14 @@ interface ContractPickerProps {
   onCancel: () => void;
   onLoad: (params: {
     name: string;
+    symbol: string;
     spot: number;
     strike: number;
     days: number;
     iv: number;
     type: OptionType;
+    rv?: number | null;
+    rvWindow?: number;
   }) => void;
 }
 
@@ -163,16 +166,32 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
     selectedRow &&
     effectiveIV !== null;
 
-  const handleLoad = () => {
+  const handleLoad = async () => {
     if (!canLoad || !data || !selectedRow || effectiveIV === null) return;
     const days = daysBetween(new Date(), expiry);
+    const rvWindow = 60;
+    let rv: number | null = null;
+    try {
+      const res = await fetch(`/api/rv?symbol=${encodeURIComponent(data.symbol)}&days=${rvWindow}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (typeof json.rv === 'number' && Number.isFinite(json.rv)) {
+          rv = json.rv;
+        }
+      }
+    } catch {
+      // RV opsiyonel, çekilemezse sessizce null geçer
+    }
     onLoad({
       name: `${data.symbol} ${selectedRow.strike}${type} — ${fmtExpiry(expiry)}`,
+      symbol: data.symbol,
       spot: data.spot,
       strike: selectedRow.strike,
       days,
       iv: effectiveIV,
       type,
+      rv,
+      rvWindow,
     });
   };
 

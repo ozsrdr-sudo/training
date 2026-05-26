@@ -21,6 +21,7 @@ export interface Point {
 }
 
 export interface ContractData {
+  symbol: string;
   spot: number;
   strike: number;
   days: number;
@@ -32,6 +33,8 @@ export interface ContractData {
   gamma: number;
   theta: number;
   vega: number;
+  rv: number | null;
+  rvWindow: number;
 }
 
 export type PricingMode = 'linear' | 'bs';

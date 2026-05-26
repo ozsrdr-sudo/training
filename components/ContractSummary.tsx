@@ -69,6 +69,17 @@ export function ContractSummary({
     ivTier = { label: 'çok yüksek', klass: 'text-fg-danger', note: 'prim pahalı, piyasa büyük hareket bekliyor (yaklaşan event, dar şirket, spekülasyon). Long opsiyon riski yüksek; event sonrası IV crush olabilir' };
   }
 
+  const rv = state.rv;
+  const rvPct = rv !== null ? rv * 100 : null;
+  const ratio = rv !== null && rv > 0 ? state.iv / rv : null;
+  let ratioTier: { label: string; klass: string } | null = null;
+  if (ratio !== null) {
+    if (ratio < 0.9) ratioTier = { label: 'ucuz', klass: 'text-fg-success' };
+    else if (ratio < 1.2) ratioTier = { label: 'normal premium', klass: 'text-fg-info' };
+    else if (ratio < 1.5) ratioTier = { label: 'pahalı', klass: 'text-brand-be' };
+    else ratioTier = { label: 'çok pahalı', klass: 'text-fg-danger' };
+  }
+
   const greekRows: Array<{ symbol: string; name: string; perShare: string; perContract: string; hint: string }> = [
     {
       symbol: 'Δ',
@@ -141,6 +152,14 @@ export function ContractSummary({
             <div className="mt-1 text-fg-secondary">Bu kontrat: <strong>{moneynessLabel}</strong></div>
             <div className="text-fg-secondary">
               IV %{ivPct.toFixed(0)} <span className={`font-medium ${ivTier.klass}`}>({ivTier.label})</span> — {ivTier.note}.
+            </div>
+            {rvPct !== null && ratio !== null && ratioTier !== null && (
+              <div className="text-fg-secondary">
+                RV %{rvPct.toFixed(0)} (son {state.rvWindow} gün gerçekleşen) · IV/RV {ratio.toFixed(2)}× <span className={`font-medium ${ratioTier.klass}`}>({ratioTier.label})</span> — opsiyon hissenin son hareketine göre {ratio >= 1 ? `%${((ratio - 1) * 100).toFixed(0)} pahalı` : `%${((1 - ratio) * 100).toFixed(0)} ucuz`}.
+              </div>
+            )}
+            <div className="mt-1.5 text-fg-tertiary leading-snug">
+              <em>Not:</em> bu mutlak değil, başlangıç heuristic&apos;i. Daha doğru karar için <strong>IV rank</strong> (son 1 yıllık IV penceresinin bu noktası) gerekirdi, o veri Yahoo&apos;da yok. Mevcut değerler eğitim amaçlı hesaplamadır; gerçek IV rank için ücretli kaynaklar (Tastytrade, IB TWS, ORATS, IVolatility) gerekir.
             </div>
           </div>
         </div>

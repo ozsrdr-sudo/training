@@ -18,6 +18,7 @@ import type {
 } from '@/lib/types';
 
 const EMPTY_CONTRACT: ContractData = {
+  symbol: '',
   spot: 0,
   strike: 0,
   days: 0,
@@ -29,6 +30,8 @@ const EMPTY_CONTRACT: ContractData = {
   gamma: 0,
   theta: 0,
   vega: 0,
+  rv: null,
+  rvWindow: 60,
 };
 
 export function useSimulator() {
@@ -49,16 +52,20 @@ export function useSimulator() {
   const loadCustomContract = useCallback(
     (params: {
       name: string;
+      symbol: string;
       spot: number;
       strike: number;
       days: number;
       iv: number;
       type: OptionType;
       r?: number;
+      rv?: number | null;
+      rvWindow?: number;
     }) => {
       const r = params.r ?? DEFAULT_RISK_FREE_RATE;
       const g = blackScholes(params.spot, params.strike, params.days / 365, r, params.iv, params.type);
       const data: ContractData = {
+        symbol: params.symbol,
         spot: params.spot,
         strike: params.strike,
         days: params.days,
@@ -70,6 +77,8 @@ export function useSimulator() {
         gamma: g.gamma,
         theta: g.theta,
         vega: g.vega,
+        rv: params.rv ?? null,
+        rvWindow: params.rvWindow ?? 60,
       };
       setHasContract(true);
       setContractName(params.name);
