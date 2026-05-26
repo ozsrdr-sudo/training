@@ -80,6 +80,31 @@ export function ContractSummary({
     else ratioTier = { label: 'çok pahalı', klass: 'text-fg-danger' };
   }
 
+  const moneynessHint = isITM
+    ? 'Çoğu prim intrinsic, time value görece küçük. Yön bahsi için verimli'
+    : isATM
+      ? 'Premium dengeli; gamma yüksek (Δ hızlı değişir), IV duyarlılığı maksimum'
+      : 'Premium ucuz ama ITM\'e ulaşma şansı düşük (loto bileti gibi)';
+
+  type LongStance = 'verimli' | 'karma' | 'riskli';
+  let longStance: LongStance;
+  let longReason: string;
+  if (ivPct >= 80 || (ratio !== null && ratio >= 1.5)) {
+    longStance = 'riskli';
+    longReason = 'IV çok yüksek veya premium gerçekleşen harekete göre çok pahalı. Event sonrası IV crush ile prim hızlı düşebilir, yön lehe gelse bile zarar etme riski var';
+  } else if (ivPct >= 50 || (ratio !== null && ratio >= 1.2)) {
+    longStance = 'karma';
+    longReason = 'Premium pahalı tarafta. Net karar için spot beklentini, vadeye kalan günü ve IV\'nin nereye gidebileceğini birlikte değerlendir';
+  } else {
+    longStance = 'verimli';
+    longReason = 'Premium ucuz tarafta, IV crush riski sınırlı. Klasik long opsiyon set-up\'ına yakın';
+  }
+  const longStanceClass: Record<LongStance, string> = {
+    verimli: 'text-fg-success',
+    karma: 'text-brand-be',
+    riskli: 'text-fg-danger',
+  };
+
   const ivThresholds = [
     { range: '< %30', label: 'düşük', klass: 'text-fg-success', match: ivPct < 30 },
     { range: '%30 – 50', label: 'orta', klass: 'text-fg-info', match: ivPct >= 30 && ivPct < 50 },
@@ -221,6 +246,13 @@ export function ContractSummary({
             </div>
           )}
         </div>
+        <div className="mb-2 pt-2 border-t border-border-tertiary text-[12px] leading-relaxed" style={{ borderTopWidth: '0.5px' }}>
+          <div className="text-fg-tertiary text-[11px] mb-1">Long opsiyon yorumu</div>
+          <div className="text-fg-secondary">
+            <strong className="text-fg-primary">{moneyness}</strong> — {moneynessHint}.{' '}
+            Long opsiyon için <span className={`font-medium ${longStanceClass[longStance]}`}>{longStance}</span>: {longReason}.
+          </div>
+        </div>
         <div
           className="grid gap-x-4 gap-y-1 mb-2 pt-2 border-t border-border-tertiary text-[11px]"
           style={{ borderTopWidth: '0.5px', gridTemplateColumns: ratio !== null ? '1fr 1fr' : '1fr' }}
@@ -265,7 +297,7 @@ export function ContractSummary({
           )}
         </div>
         <div className="text-[11px] text-fg-tertiary leading-snug pt-1.5 border-t border-border-tertiary" style={{ borderTopWidth: '0.5px' }}>
-          <em>Not:</em> bu mutlak değil, başlangıç heuristic&apos;i. Daha doğru karar için <strong>IV rank</strong> (son 1 yıllık IV penceresinin bu noktası) gerekirdi, o veri Yahoo&apos;da yok. Mevcut değerler eğitim amaçlı hesaplamadır; gerçek IV rank için ücretli kaynaklar (Tastytrade, IB TWS, ORATS, IVolatility) gerekir.
+          <em>Not:</em> bu mutlak değil, başlangıç heuristic&apos;i. Daha doğru karar için <strong>IV rank</strong> (son 1 yıllık IV penceresinin bu noktası) gerekirdi, o veri Yahoo&apos;da yok. Mevcut değerler eğitim amaçlı hesaplamadır; gerçek IV rank için ücretli kaynaklar (Tastytrade, IB TWS, ORATS, IVolatility) gerekir. &quot;Verimli/karma/riskli&quot; yorumu yatırım tavsiyesi değil; long opsiyon için tipik trade-off&apos;ları özetler. Short premium, hedge gibi farklı stratejilerde ters yorum gerekir.
         </div>
       </div>
 
