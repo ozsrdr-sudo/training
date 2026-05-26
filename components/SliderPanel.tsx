@@ -165,6 +165,14 @@ export function SliderPanel(props: SliderPanelProps) {
             disabled={greekDisabled}
             help={'IV %1 değiştiğinde primin kaç dolar hareket eder. Etkisini görmek için aşağıdaki ΔIV slider\'ını oynat.' + greekHelpSuffix}
           />
+          <div className="grid items-center gap-2.5" style={{ gridTemplateColumns: '70px 1fr 70px' }}>
+            <label className="text-[13px] text-fg-tertiary" title="Gamma — Delta'nın türevi. S/σ/T'den hesaplanır, slider'la oynatılmaz.">Γ Gamma</label>
+            <div className="text-[11px] text-fg-secondary leading-snug">
+              Hisse $1 hareket → Delta&apos;nın değişimi (Δ&apos;nın eğimi). BS&apos;den hesaplanır, scrub edilmez. Per kontrat: <strong>{(state.gamma * 100).toFixed(3)}</strong> (×100).
+            </div>
+            <span className="font-mono text-xs text-right text-fg-secondary">{state.gamma.toFixed(4)}</span>
+          </div>
+          <div className="mb-2.5" />
           <SliderRow
             label="ΔIV sim"
             min={-0.2}
