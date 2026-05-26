@@ -86,24 +86,93 @@ export function ContractSummary({
       ? 'Premium dengeli; gamma yüksek (Δ hızlı değişir), IV duyarlılığı maksimum'
       : 'Premium ucuz ama ITM\'e ulaşma şansı düşük (loto bileti gibi)';
 
-  type LongStance = 'verimli' | 'karma' | 'riskli';
-  let longStance: LongStance;
-  let longReason: string;
+  type Stance = { label: string; klass: string; reason: string };
+
+  // Long opsiyon: IV ucuzu lehine, IV pahalısı aleyhine (cheap entry).
+  let longStance: Stance;
   if (ivPct >= 80 || (ratio !== null && ratio >= 1.5)) {
-    longStance = 'riskli';
-    longReason = 'IV çok yüksek veya premium gerçekleşen harekete göre çok pahalı. Event sonrası IV crush ile prim hızlı düşebilir, yön lehe gelse bile zarar etme riski var';
+    longStance = {
+      label: 'riskli',
+      klass: 'text-fg-danger',
+      reason: 'IV çok yüksek veya premium gerçekleşen harekete göre çok pahalı. Event sonrası IV crush ile prim hızlı düşebilir, yön lehe gelse bile zarar riski var',
+    };
   } else if (ivPct >= 50 || (ratio !== null && ratio >= 1.2)) {
-    longStance = 'karma';
-    longReason = 'Premium pahalı tarafta. Net karar için spot beklentini, vadeye kalan günü ve IV\'nin nereye gidebileceğini birlikte değerlendir';
+    longStance = {
+      label: 'karma',
+      klass: 'text-brand-be',
+      reason: 'Premium pahalı tarafta. Net karar için spot beklentini, vadeye kalan günü ve IV\'nin nereye gidebileceğini birlikte değerlendir',
+    };
   } else {
-    longStance = 'verimli';
-    longReason = 'Premium ucuz tarafta, IV crush riski sınırlı. Klasik long opsiyon set-up\'ına yakın';
+    longStance = {
+      label: 'verimli',
+      klass: 'text-fg-success',
+      reason: 'Premium ucuz tarafta, IV crush riski sınırlı. Klasik long opsiyon set-up\'ına yakın',
+    };
   }
-  const longStanceClass: Record<LongStance, string> = {
-    verimli: 'text-fg-success',
-    karma: 'text-brand-be',
-    riskli: 'text-fg-danger',
-  };
+
+  // Short premium: IV pahalısı lehine (çok premium toplanır, mean revert), IV ucuzu aleyhine.
+  // Gamma maruziyeti ATM'de yüksek → satıcı için risk artar.
+  let shortStance: Stance;
+  if (ivPct < 30 || (ratio !== null && ratio < 0.9)) {
+    shortStance = {
+      label: 'zayıf',
+      klass: 'text-fg-danger',
+      reason: 'IV dipte, toplayacağın premium az ve mean revert yukarı doğru — vega aleyhine çalışır. Satıcı için kötü pencere',
+    };
+  } else if (ivPct < 50 || (ratio !== null && ratio < 1.2)) {
+    shortStance = {
+      label: 'karma',
+      klass: 'text-brand-be',
+      reason: 'Premium orta seviyede, vol risk premium net değil. Defined-risk yapı (spread, iron condor) ile düşünebilirsin',
+    };
+  } else if (ivPct < 80 && (ratio === null || ratio < 1.5)) {
+    shortStance = {
+      label: 'cazip',
+      klass: 'text-fg-success',
+      reason: 'IV pahalı tarafta, vol risk premium büyük. Premium toplayıp theta\'nın çalışmasını bekleyebilirsin (vade kısaltıkça hızlanır)',
+    };
+  } else {
+    shortStance = {
+      label: 'çok cazip ama dikkat',
+      klass: 'text-brand-be',
+      reason: 'IV çok yüksek — premium şişmiş, satmak cazip ama event/haber riski büyük. Naked yerine spread/credit yapı şart',
+    };
+  }
+  // ATM yakınında gamma riski → short premium için ek uyarı
+  if (isATM && (shortStance.label === 'cazip' || shortStance.label === 'karma')) {
+    shortStance = {
+      ...shortStance,
+      reason: shortStance.reason + '. Ancak ATM yakın olduğun için gamma maruziyeti yüksek — küçük spot hareketi pozisyonu hızlı kötüleştirir, OTM strike\'lara kaymak güvenli',
+    };
+  }
+
+  // Hedge: IV ucuzluğu = ucuz sigorta. Mutlak IV seviyesi ana kriter.
+  let hedgeStance: Stance;
+  if (ivPct < 30) {
+    hedgeStance = {
+      label: 'ucuz sigorta',
+      klass: 'text-fg-success',
+      reason: 'IV dipte, koruma maliyeti minimum. Protective put / collar / tail risk hedge için ideal giriş penceresi',
+    };
+  } else if (ivPct < 50) {
+    hedgeStance = {
+      label: 'uygun maliyet',
+      klass: 'text-fg-success',
+      reason: 'Sigorta primi makul. Mevcut pozisyonu korumak istiyorsan kurulum mantıklı',
+    };
+  } else if (ivPct < 80) {
+    hedgeStance = {
+      label: 'pahalı sigorta',
+      klass: 'text-brand-be',
+      reason: 'IV yüksek, koruma pahalıya geliyor. Sıfır maliyetli collar (long put + short call) veya OTM put spread ile ucuzlatabilirsin',
+    };
+  } else {
+    hedgeStance = {
+      label: 'çok pahalı (sadece tail riske değer)',
+      klass: 'text-fg-danger',
+      reason: 'IV uçtaki seviyede; koruma maliyeti çok yüksek. Sadece felaket senaryosuna karşı sigorta olarak savunulabilir (catastrophe hedge)',
+    };
+  }
 
   const ivThresholds = [
     { range: '< %30', label: 'düşük', klass: 'text-fg-success', match: ivPct < 30 },
@@ -247,10 +316,38 @@ export function ContractSummary({
           )}
         </div>
         <div className="mb-2 pt-2 border-t border-border-tertiary text-[12px] leading-relaxed" style={{ borderTopWidth: '0.5px' }}>
-          <div className="text-fg-tertiary text-[11px] mb-1">Long opsiyon yorumu</div>
-          <div className="text-fg-secondary">
-            <strong className="text-fg-primary">{moneyness}</strong> — {moneynessHint}.{' '}
-            Long opsiyon için <span className={`font-medium ${longStanceClass[longStance]}`}>{longStance}</span>: {longReason}.
+          <div className="text-fg-tertiary text-[11px] mb-1.5">Strateji yorumu</div>
+          <div className="text-fg-secondary mb-2">
+            <strong className="text-fg-primary">{moneyness}</strong> — {moneynessHint}.
+          </div>
+          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            <div className="bg-bg-primary p-2 rounded border border-border-tertiary" style={{ borderWidth: '0.5px' }}>
+              <div className="text-[11px] text-fg-tertiary mb-0.5">
+                <strong className="text-fg-secondary">Long opsiyon</strong> (premium öde, hareket bekle)
+              </div>
+              <div className={`text-[12px] font-medium ${longStance.klass}`}>{longStance.label}</div>
+              <div className="text-[11px] text-fg-secondary mt-0.5 leading-snug">{longStance.reason}.</div>
+            </div>
+            <div className="bg-bg-primary p-2 rounded border border-border-tertiary" style={{ borderWidth: '0.5px' }}>
+              <div className="text-[11px] text-fg-tertiary mb-0.5">
+                <strong className="text-fg-secondary">Short premium</strong> (premium topla, theta lehine)
+              </div>
+              <div className={`text-[12px] font-medium ${shortStance.klass}`}>{shortStance.label}</div>
+              <div className="text-[11px] text-fg-secondary mt-0.5 leading-snug">{shortStance.reason}.</div>
+            </div>
+            <div className="bg-bg-primary p-2 rounded border border-border-tertiary" style={{ borderWidth: '0.5px' }}>
+              <div className="text-[11px] text-fg-tertiary mb-0.5">
+                <strong className="text-fg-secondary">Hedge</strong> (sigorta amaçlı, mevcut pozisyonu koru)
+              </div>
+              <div className={`text-[12px] font-medium ${hedgeStance.klass}`}>{hedgeStance.label}</div>
+              <div className="text-[11px] text-fg-secondary mt-0.5 leading-snug">{hedgeStance.reason}.</div>
+            </div>
+          </div>
+          <div className="text-[10px] text-fg-tertiary mt-2 leading-snug">
+            <strong className="text-fg-secondary">Strateji açıklamaları:</strong>{' '}
+            <strong>Long opsiyon</strong> = call/put alıp yön + IV artışından kâr beklemek; max kayıp ödenen premium, kazanç teorik sınırsız (call) ya da büyük (put).{' '}
+            <strong>Short premium</strong> = satıcı tarafı, premium topla worthless bitsin diye umut et; theta lehine çalışır, max kazanç toplanan premium, naked&apos;ta kayıp teorik sınırsız (spread/iron condor ile sınırlanabilir).{' '}
+            <strong>Hedge</strong> = elindeki hisse/opsiyonu sigortala: protective put (aşağı koruma), covered call (yukarı sınır + ek gelir), collar (bant), delta-hedge (gamma scalping). Para kazanma değil risk sınırlama amaçlıdır.
           </div>
         </div>
         <div
