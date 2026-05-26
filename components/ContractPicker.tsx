@@ -285,7 +285,7 @@ export function ContractPicker({ symbol, onCancel, onLoad }: ContractPickerProps
         <div className="mt-3 text-[11px] text-fg-secondary leading-snug">
           {effectiveIV === null ? (
             <span className="text-fg-danger">
-              Bu kontrat için IV yok — Yahoo veri eksik ve bid/ask mid'den çözülemedi, başka strike/expiry seç.
+              Bu kontrat için IV yok — Yahoo veri eksik ve bid/ask mid&apos;den çözülemedi, başka strike/expiry seç.
             </span>
           ) : (
             <>
