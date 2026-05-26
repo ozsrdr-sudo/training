@@ -171,6 +171,7 @@ export default function Page() {
               state={sim.state}
               original={sim.original}
               dIV={sim.dIV}
+              contracts={sim.contracts}
               onDeltaChange={sim.setDelta}
               onThetaChange={sim.setTheta}
               onVegaChange={sim.setVega}

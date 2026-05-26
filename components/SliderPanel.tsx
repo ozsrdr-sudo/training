@@ -52,6 +52,7 @@ export interface SliderPanelProps {
   state: ContractData;
   original: ContractData;
   dIV: number;
+  contracts: number;
   onDeltaChange: (v: number) => void;
   onThetaChange: (v: number) => void;
   onVegaChange: (v: number) => void;
@@ -71,6 +72,7 @@ export function SliderPanel(props: SliderPanelProps) {
     state,
     original,
     dIV,
+    contracts,
     onDeltaChange,
     onThetaChange,
     onVegaChange,
@@ -86,6 +88,11 @@ export function SliderPanel(props: SliderPanelProps) {
   const greekHelpSuffix = greekDisabled
     ? ' (BS modunda kilitli — Greek\'ler BS hesabının çıktısıdır, girdisi değil.)'
     : '';
+
+  const N = Math.max(1, contracts);
+  const positionScale = 100 * N;
+  const fmtFormula = (perShare: number, decimals = 2) =>
+    `${perShare.toFixed(decimals)} × 100 × ${N} = ${(perShare * positionScale).toFixed(0)}`;
 
   return (
     <div
@@ -130,47 +137,53 @@ export function SliderPanel(props: SliderPanelProps) {
           )}
           <SliderRow
             label="Δ Delta"
-            min={state.type === 'C' ? 0 : -1}
-            max={state.type === 'C' ? 1 : 0}
-            step={0.01}
-            value={state.delta}
-            display={state.delta.toFixed(2)}
-            onChange={onDeltaChange}
+            min={state.type === 'C' ? 0 : -1 * positionScale}
+            max={state.type === 'C' ? 1 * positionScale : 0}
+            step={1}
+            value={state.delta * positionScale}
+            display={(state.delta * positionScale).toFixed(0)}
+            onChange={(v) => onDeltaChange(v / positionScale)}
             disabled={greekDisabled}
             help={
               (state.type === 'C'
-                ? 'Call delta 0–1: Hisse $1 yukarı → prim ≈ Δ$ yukarı.'
-                : 'Put delta −1 … 0: Hisse $1 yukarı → prim ≈ Δ$ yukarı (Δ negatif olduğu için prim aşağı).') + greekHelpSuffix
+                ? `Call delta: hisse $1 yukarı → pozisyonun ${(state.delta * positionScale).toFixed(0)}$ kazanır. Hesap: ${fmtFormula(state.delta)}.`
+                : `Put delta: hisse $1 yukarı → pozisyonun ${(state.delta * positionScale).toFixed(0)}$ değişir (negatif olduğu için kaybeder). Hesap: ${fmtFormula(state.delta)}.`) + greekHelpSuffix
             }
           />
           <SliderRow
             label="Θ Theta"
-            min={-0.5}
+            min={-0.5 * positionScale}
             max={0}
-            step={0.01}
-            value={state.theta}
-            display={state.theta.toFixed(2)}
-            onChange={onThetaChange}
+            step={1}
+            value={state.theta * positionScale}
+            display={(state.theta * positionScale).toFixed(0)}
+            onChange={(v) => onThetaChange(v / positionScale)}
             disabled={greekDisabled}
-            help={'Her gün primin kaç dolar erir. Negatif olur. Vadeye yaklaştıkça hızlanır.' + greekHelpSuffix}
+            help={`Her gün pozisyondan ${Math.abs(state.theta * positionScale).toFixed(0)}$ erir (zaman değeri kaybı). Vadeye yaklaştıkça hızlanır. Hesap: ${fmtFormula(state.theta)}.` + greekHelpSuffix}
           />
           <SliderRow
             label="ν Vega"
             min={0}
-            max={2}
-            step={0.01}
-            value={state.vega}
-            display={state.vega.toFixed(2)}
-            onChange={onVegaChange}
+            max={2 * positionScale}
+            step={1}
+            value={state.vega * positionScale}
+            display={(state.vega * positionScale).toFixed(0)}
+            onChange={(v) => onVegaChange(v / positionScale)}
             disabled={greekDisabled}
-            help={'IV %1 değiştiğinde primin kaç dolar hareket eder. Etkisini görmek için aşağıdaki ΔIV slider\'ını oynat.' + greekHelpSuffix}
+            help={`IV %1 değişirse pozisyon ${(state.vega * positionScale).toFixed(0)}$ hareket eder. ΔIV slider'ıyla dene. Hesap: ${fmtFormula(state.vega)}.` + greekHelpSuffix}
           />
           <div className="grid items-center gap-2.5" style={{ gridTemplateColumns: '70px 1fr 70px' }}>
             <label className="text-[13px] text-fg-tertiary" title="Gamma — Delta'nın türevi. S/σ/T'den hesaplanır, slider'la oynatılmaz.">Γ Gamma</label>
             <div className="text-[11px] text-fg-secondary leading-snug">
-              Hisse $1 hareket → Delta&apos;nın değişimi (Δ&apos;nın eğimi). BS&apos;den hesaplanır, scrub edilmez. Per kontrat: <strong>{(state.gamma * 100).toFixed(3)}</strong> (×100).
+              Hisse $1 hareket → Delta&apos;nın değişimi (Δ&apos;nın eğimi).{' '}
+              <strong>BS</strong> (Black-Scholes — opsiyon fiyatlama modeli, Fischer Black + Myron Scholes 1973) den hesaplanır;
+              Yahoo Greek vermez, biz lokalde S/K/T/σ/r&apos;den çözüyoruz.{' '}
+              <strong>Pratik kullanım: hedging.</strong> 1 kontrat aldın, delta&apos;n {(state.delta * 100).toFixed(0)} (={state.delta.toFixed(2)}×100).
+              Hisse $1 yukarı çıktı → yeni delta {(state.delta * 100).toFixed(0)} + {(state.gamma * 100).toFixed(2)} = {(state.delta * 100 + state.gamma * 100).toFixed(2)}.
+              Hedge kuruyorsan kaç hisse short almak gerektiği bu kadar değişir. IB de bu yüzden per-kontrat gösterir — trader doğrudan kullanır.
+              Hesap: {fmtFormula(state.gamma, 4)}.
             </div>
-            <span className="font-mono text-xs text-right text-fg-secondary">{state.gamma.toFixed(4)}</span>
+            <span className="font-mono text-xs text-right text-fg-secondary">{(state.gamma * positionScale).toFixed(2)}</span>
           </div>
           <div className="mb-2.5" />
           <SliderRow
@@ -238,10 +251,13 @@ export function SliderPanel(props: SliderPanelProps) {
             help="Risksiz faiz oranı. Call primlerini hafif artırır, Put'ları azaltır. Adım %0.5."
           />
           <div className="grid grid-cols-4 gap-2 mt-2">
-            <ReadOnlyBox label="Δ" value={state.delta.toFixed(2)} />
-            <ReadOnlyBox label="Γ" value={state.gamma.toFixed(4)} />
-            <ReadOnlyBox label="Θ" value={state.theta.toFixed(2)} />
-            <ReadOnlyBox label="ν" value={state.vega.toFixed(2)} />
+            <ReadOnlyBox label="Δ" value={`${(state.delta * positionScale).toFixed(0)}`} />
+            <ReadOnlyBox label="Γ" value={`${(state.gamma * positionScale).toFixed(2)}`} />
+            <ReadOnlyBox label="Θ" value={`${(state.theta * positionScale).toFixed(0)}`} />
+            <ReadOnlyBox label="ν" value={`${(state.vega * positionScale).toFixed(0)}`} />
+          </div>
+          <div className="text-[10px] text-fg-tertiary mt-1 text-center leading-snug">
+            Per-pozisyon (×100 × {N} kontrat). Per-hisse: Δ {state.delta.toFixed(2)} · Γ {state.gamma.toFixed(4)} · Θ {state.theta.toFixed(2)} · ν {state.vega.toFixed(2)}.
           </div>
         </div>
       )}
