@@ -173,17 +173,20 @@ export function SliderPanel(props: SliderPanelProps) {
             help={`IV %1 değişirse pozisyon ${(state.vega * positionScale).toFixed(0)}$ hareket eder. ΔIV slider'ıyla dene. Hesap: ${fmtFormula(state.vega)}.` + greekHelpSuffix}
           />
           <div className="grid items-center gap-2.5" style={{ gridTemplateColumns: '70px 1fr 70px' }}>
-            <label className="text-[13px] text-fg-tertiary" title="Gamma — Delta'nın türevi. S/σ/T'den hesaplanır, slider'la oynatılmaz.">Γ Gamma</label>
+            <label className="text-[13px] text-fg-tertiary" title="Gamma — Delta'nın türevi. S/σ/T/σ'den hesaplanır, slider'la oynatılmaz.">Γ Gamma</label>
             <div className="text-[11px] text-fg-secondary leading-snug">
               Hisse $1 hareket → Delta&apos;nın değişimi (Δ&apos;nın eğimi).{' '}
               <strong>BS</strong> (Black-Scholes — opsiyon fiyatlama modeli, Fischer Black + Myron Scholes 1973) den hesaplanır;
               Yahoo Greek vermez, biz lokalde S/K/T/σ/r&apos;den çözüyoruz.{' '}
-              <strong>Pratik kullanım: hedging.</strong> 1 kontrat aldın, delta&apos;n {(state.delta * 100).toFixed(0)} (={state.delta.toFixed(2)}×100).
-              Hisse $1 yukarı çıktı → yeni delta {(state.delta * 100).toFixed(0)} + {(state.gamma * 100).toFixed(2)} = {(state.delta * 100 + state.gamma * 100).toFixed(2)}.
+              <strong>Pratik kullanım: hedging.</strong> 1 kontrat aldın, delta&apos;n {(original.delta * 100).toFixed(0)} (={original.delta.toFixed(2)}×100).
+              Hisse $1 yukarı çıktı → yeni delta {(original.delta * 100).toFixed(0)} + {(original.gamma * 100).toFixed(2)} = {(original.delta * 100 + original.gamma * 100).toFixed(2)}.
               Hedge kuruyorsan kaç hisse short almak gerektiği bu kadar değişir. IB de bu yüzden per-kontrat gösterir — trader doğrudan kullanır.
-              Hesap: {fmtFormula(state.gamma, 4)}.
+              Hesap: {fmtFormula(original.gamma, 4)}.
+              <div className="mt-1 text-fg-tertiary">
+                <em>Not:</em> Greek Play tab&apos;ında Δ/Θ/ν bağımsız scrub edilir, Γ sabit kalır. Gerçek BS bağlantısını görmek için <strong>Greek Parametre Play</strong> tab&apos;ına geç — S/σ/T değiştir, Γ da koordineli yenilenir.
+              </div>
             </div>
-            <span className="font-mono text-xs text-right text-fg-secondary">{(state.gamma * positionScale).toFixed(2)}</span>
+            <span className="font-mono text-xs text-right text-fg-secondary">{(original.gamma * positionScale).toFixed(2)}</span>
           </div>
           <div className="mb-2.5" />
           <SliderRow
