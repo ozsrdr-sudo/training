@@ -80,6 +80,19 @@ export function ContractSummary({
     else ratioTier = { label: 'çok pahalı', klass: 'text-fg-danger' };
   }
 
+  const ivThresholds = [
+    { range: '< %30', label: 'düşük', klass: 'text-fg-success', match: ivPct < 30 },
+    { range: '%30 – 50', label: 'orta', klass: 'text-fg-info', match: ivPct >= 30 && ivPct < 50 },
+    { range: '%50 – 80', label: 'yüksek', klass: 'text-brand-be', match: ivPct >= 50 && ivPct < 80 },
+    { range: '> %80', label: 'çok yüksek', klass: 'text-fg-danger', match: ivPct >= 80 },
+  ];
+  const ratioThresholds = [
+    { range: '< 0.9×', label: 'ucuz', klass: 'text-fg-success', match: ratio !== null && ratio < 0.9 },
+    { range: '0.9 – 1.2×', label: 'normal premium', klass: 'text-fg-info', match: ratio !== null && ratio >= 0.9 && ratio < 1.2 },
+    { range: '1.2 – 1.5×', label: 'pahalı', klass: 'text-brand-be', match: ratio !== null && ratio >= 1.2 && ratio < 1.5 },
+    { range: '> 1.5×', label: 'çok pahalı', klass: 'text-fg-danger', match: ratio !== null && ratio >= 1.5 },
+  ];
+
   const greekRows: Array<{ symbol: string; name: string; perShare: string; perContract: string; hint: string }> = [
     {
       symbol: 'Δ',
@@ -149,7 +162,9 @@ export function ContractSummary({
             <div><strong className="text-fg-secondary">ATM</strong> At The Money — strike ≈ spot (±%1)</div>
             <div><strong className="text-fg-secondary">OTM</strong> Out of The Money — kârsız taraf</div>
             <div><strong className="text-fg-secondary">IV</strong> Implied Volatility — örtük yıllık oynaklık (yüksek = prim pahalı)</div>
-            <div className="mt-1 text-fg-secondary">Bu kontrat: <strong>{moneynessLabel}</strong></div>
+            <div className="mt-1 text-fg-secondary">
+              Bu kontrat: <strong>{moneynessLabel}</strong>, <span className={`font-medium ${ivTier.klass}`}>{ivTier.note}</span>.
+            </div>
           </div>
         </div>
         <Stat
@@ -203,6 +218,49 @@ export function ContractSummary({
           {rvPct === null && (
             <div className="text-fg-tertiary text-[11px]">
               RV verisi alınamadı (Yahoo geçmiş kapanışlar yok), IV/RV oranı gösterilemiyor.
+            </div>
+          )}
+        </div>
+        <div
+          className="grid gap-x-4 gap-y-1 mb-2 pt-2 border-t border-border-tertiary text-[11px]"
+          style={{ borderTopWidth: '0.5px', gridTemplateColumns: ratio !== null ? '1fr 1fr' : '1fr' }}
+        >
+          <div>
+            <div className="text-fg-tertiary mb-1">Eşik tablosu — <strong className="text-fg-secondary">IV (mutlak)</strong></div>
+            <div className="flex flex-wrap gap-1.5">
+              {ivThresholds.map((t) => (
+                <span
+                  key={t.range}
+                  className={`px-2 py-0.5 rounded ${
+                    t.match
+                      ? `bg-bg-primary ${t.klass} font-medium border border-border-secondary`
+                      : 'text-fg-tertiary'
+                  }`}
+                  style={t.match ? { borderWidth: '0.5px' } : undefined}
+                >
+                  {t.range} <span className="opacity-80">{t.label}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+          {ratio !== null && (
+            <div>
+              <div className="text-fg-tertiary mb-1">Eşik tablosu — <strong className="text-fg-secondary">IV/RV oranı</strong></div>
+              <div className="flex flex-wrap gap-1.5">
+                {ratioThresholds.map((t) => (
+                  <span
+                    key={t.range}
+                    className={`px-2 py-0.5 rounded ${
+                      t.match
+                        ? `bg-bg-primary ${t.klass} font-medium border border-border-secondary`
+                        : 'text-fg-tertiary'
+                    }`}
+                    style={t.match ? { borderWidth: '0.5px' } : undefined}
+                  >
+                    {t.range} <span className="opacity-80">{t.label}</span>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
