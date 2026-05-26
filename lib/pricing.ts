@@ -64,8 +64,12 @@ export function priceAt(args: PriceAtArgs): PriceResult | null {
     const dIV_use = useOriginal ? 0 : dIV;
     const pRaw = linearPriceWithGreeks(S_new, days_passed, dIV_use, original, greeks);
 
-    // Lineer yaklaşım uzun horizonda saçma fiyatlar üretebilir; no-arbitrage sınırları:
-    //   alt: opsiyon hiçbir zaman intrinsic'in altında işlem görmez
+    // Lineer yaklaşım uzun horizonda saçma fiyatlar üretebilir; sınırlar:
+    //   alt: 0 (negatif fiyatı engelle, ama intrinsic'in altına izin ver
+    //        — gerçek piyasada opsiyon intrinsic'in altında işlem görmez,
+    //        ama lineer modda Θ slider'ının grafik üzerindeki etkisi intrinsic
+    //        tabanına çarpıp kaybolmasın diye eğitsel bir gevşetme.
+    //        Lineer mod zaten yaklaşıktır — realistik fiyat için BS modu).
     //   üst: zaman değeri en fazla orijinal-TV × √(kalan/toplam) kadar olabilir (√t decay)
     const originalIntrinsic =
       original.type === 'C'
@@ -75,7 +79,7 @@ export function priceAt(args: PriceAtArgs): PriceResult | null {
     const remainingFrac = original.days > 0 ? days_remaining / original.days : 0;
     const maxTimeValue = originalTimeValue * Math.sqrt(Math.max(0, remainingFrac));
     const cap = intrinsic + maxTimeValue;
-    const p = Math.max(intrinsic, Math.min(pRaw, cap));
+    const p = Math.max(0, Math.min(pRaw, cap));
     return { price: p, pnl: (p - original.price0) * multiplier };
   }
 

@@ -10,10 +10,11 @@ export interface ValueChartProps {
   state: ContractData;
   points: Point[];
   contracts: number;
+  mode: 'linear' | 'bs';
   priceAt: (args: { S_new: number; days_passed: number; useOriginal: boolean }) => PriceResult | null;
 }
 
-export function ValueChart({ original, state, points, contracts, priceAt }: ValueChartProps) {
+export function ValueChart({ original, state, points, contracts, mode, priceAt }: ValueChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const propsRef = useRef({ original, state, points, contracts, priceAt });
@@ -253,6 +254,14 @@ export function ValueChart({ original, state, points, contracts, priceAt }: Valu
           <span className="ml-auto text-fg-tertiary">Önce yukarıdaki grafiğe tıkla</span>
         )}
       </div>
+      {mode === 'linear' && (
+        <div className="text-[10px] text-fg-tertiary mb-1.5 leading-snug">
+          <strong>Lineer mod notu:</strong> fiyat tabanı $0&apos;a indirildi (intrinsic değil). Θ slider&apos;ını çok negatife
+          çekince eğri her t değerinde aşağı ötelenir, intrinsic tabanına çarpıp düzleşmez. Gerçek piyasada opsiyon
+          intrinsic&apos;in altında işlem görmez; bu yalnızca slider etkisinin grafik üzerinde görünür kalması için eğitsel
+          bir gevşetme. Realistik fiyat için Black-Scholes mod&apos;a geç.
+        </div>
+      )}
       <div className="relative" style={{ height: 320 }}>
         <canvas ref={canvasRef} />
       </div>

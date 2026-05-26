@@ -161,6 +161,7 @@ export default function Page() {
               state={sim.state}
               points={sim.points}
               contracts={sim.contracts}
+              mode={sim.mode}
               priceAt={sim.priceAt}
             />
 
