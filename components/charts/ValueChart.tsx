@@ -255,11 +255,11 @@ export function ValueChart({ original, state, points, contracts, mode, priceAt }
         )}
       </div>
       {mode === 'linear' && (
-        <div className="text-[10px] text-fg-tertiary mb-1.5 leading-snug">
-          <strong>Lineer mod notu:</strong> fiyat tabanı $0&apos;a indirildi (intrinsic değil). Θ slider&apos;ını çok negatife
-          çekince eğri her t değerinde aşağı ötelenir, intrinsic tabanına çarpıp düzleşmez. Gerçek piyasada opsiyon
-          intrinsic&apos;in altında işlem görmez; bu yalnızca slider etkisinin grafik üzerinde görünür kalması için eğitsel
-          bir gevşetme. Realistik fiyat için Black-Scholes mod&apos;a geç.
+        <div className="text-[12px] text-fg-secondary bg-bg-secondary rounded-md px-2.5 py-2 mb-2 leading-relaxed border-l-2 border-border-info">
+          <strong className="text-fg-primary">Lineer mod notu:</strong> fiyat tabanı $0&apos;a indirildi (intrinsic değil).
+          Θ slider&apos;ını çok negatife çekince eğri her t değerinde aşağı ötelenir, intrinsic tabanına çarpıp düzleşmez.
+          Gerçek piyasada opsiyon intrinsic&apos;in altında işlem görmez; bu yalnızca slider etkisinin grafik üzerinde
+          görünür kalması için eğitsel bir gevşetme. Realistik fiyat için <strong className="text-fg-primary">Black-Scholes</strong> mod&apos;a geç.
         </div>
       )}
       <div className="relative" style={{ height: 320 }}>
