@@ -343,11 +343,28 @@ export function ContractSummary({
               <div className="text-[11px] text-fg-secondary mt-0.5 leading-snug">{hedgeStance.reason}.</div>
             </div>
           </div>
-          <div className="text-[10px] text-fg-tertiary mt-2 leading-snug">
-            <strong className="text-fg-secondary">Strateji açıklamaları:</strong>{' '}
-            <strong>Long opsiyon</strong> = call/put alıp yön + IV artışından kâr beklemek; max kayıp ödenen premium, kazanç teorik sınırsız (call) ya da büyük (put).{' '}
-            <strong>Short premium</strong> = satıcı tarafı, premium topla worthless bitsin diye umut et; theta lehine çalışır, max kazanç toplanan premium, naked&apos;ta kayıp teorik sınırsız (spread/iron condor ile sınırlanabilir).{' '}
-            <strong>Hedge</strong> = elindeki hisse/opsiyonu sigortala: protective put (aşağı koruma), covered call (yukarı sınır + ek gelir), collar (bant), delta-hedge (gamma scalping). Para kazanma değil risk sınırlama amaçlıdır.
+          <div className="mt-2.5 pt-2 border-t border-border-tertiary text-[11px] text-fg-secondary leading-snug" style={{ borderTopWidth: '0.5px' }}>
+            <div className="text-fg-tertiary text-[11px] mb-1.5"><strong className="text-fg-secondary">Strateji açıklamaları</strong></div>
+            <div className="grid gap-x-3 gap-y-1.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+              <div>
+                <strong className="text-fg-primary">Premium</strong> = opsiyonun fiyatı; alıcı satıcıya öder. Ekranda kontrat başına dolar fiyatını görürsün; gerçek tutar = bu fiyat × 100 hisse (1 kontrat = 100 hisse).
+              </div>
+              <div>
+                <strong className="text-fg-primary">Long opsiyon</strong> = call (yukarı bahis) veya put (aşağı bahis) satın alırsın, primi peşin ödersin. Kâr için tahmin ettiğin yöne hareket olmalı ya da IV (oynaklık beklentisi) artmalı. Max kayıp = ödenen prim. Max kazanç call&apos;da teorik sınırsız, put&apos;ta büyük (fiyat 0&apos;a kadar düşebilir).
+              </div>
+              <div>
+                <strong className="text-fg-primary">Short premium</strong> = opsiyonu satıp primi peşin alırsın; opsiyon vade sonunda değersiz bitsin diye beklersin. Theta (zaman erozyonu) lehine işler. Max kazanç = aldığın prim. Korumasız satışta zarar teorik sınırsız (spread/iron condor ile sınırlanabilir).
+              </div>
+              <div>
+                <strong className="text-fg-primary">Hedge</strong> = elindeki hisse veya opsiyon pozisyonunu kötü senaryolara karşı sigortalamak. Amaç para kazanmak değil, mevcut pozisyonun riskini sınırlamak. Yaygın yöntemler:
+                <ul className="mt-1 ml-3 list-disc space-y-0.5">
+                  <li><strong className="text-fg-secondary">Protective put</strong>: hisseni tutarken altına put alırsın; fiyat düşerse put kazancı hisse kaybını dengeler (sigorta primi gibi).</li>
+                  <li><strong className="text-fg-secondary">Covered call</strong>: hisseni tutarken üstüne call satarsın; primi cebine atarsın ama hisse çok yükselirse kazancın tavanlanır.</li>
+                  <li><strong className="text-fg-secondary">Collar</strong>: protective put + covered call birlikte; alt-üst bant kurarsın, satılan call primiyle put&apos;un maliyetini düşürürsün.</li>
+                  <li><strong className="text-fg-secondary">Delta-hedge</strong>: opsiyon pozisyonunun yön riskini ters yönde hisse alıp/satarak nötrler; fiyat oynadıkça hisse miktarını sürekli ayarlarsın.</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
         <div
