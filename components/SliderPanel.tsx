@@ -91,8 +91,8 @@ export function SliderPanel(props: SliderPanelProps) {
 
   const N = Math.max(1, contracts);
   const positionScale = 100 * N;
-  const fmtFormula = (perShare: number, decimals = 2) =>
-    `${perShare.toFixed(decimals)} × 100 × ${N} = ${(perShare * positionScale).toFixed(0)}`;
+  const fmtFormula = (perShare: number, perShareDecimals = 2, resultDecimals = 0) =>
+    `${perShare.toFixed(perShareDecimals)} × 100 × ${N} = ${(perShare * positionScale).toFixed(resultDecimals)}`;
 
   return (
     <div
@@ -181,7 +181,7 @@ export function SliderPanel(props: SliderPanelProps) {
               <strong>Pratik kullanım: hedging.</strong> 1 kontrat aldın, delta&apos;n {(original.delta * 100).toFixed(0)} (={original.delta.toFixed(2)}×100).
               Hisse $1 yukarı çıktı → yeni delta {(original.delta * 100).toFixed(0)} + {(original.gamma * 100).toFixed(2)} = {(original.delta * 100 + original.gamma * 100).toFixed(2)}.
               Hedge kuruyorsan kaç hisse short almak gerektiği bu kadar değişir. IB de bu yüzden per-kontrat gösterir — trader doğrudan kullanır.
-              Hesap: {fmtFormula(original.gamma, 4)}.
+              Hesap: {fmtFormula(original.gamma, 4, 2)}.
               <div className="mt-1 text-fg-tertiary">
                 <em>Not:</em> Greek Play tab&apos;ında Δ/Θ/ν bağımsız scrub edilir, Γ sabit kalır. Gerçek BS bağlantısını görmek için <strong>Greek Parametre Play</strong> tab&apos;ına geç — S/σ/T değiştir, Γ da koordineli yenilenir.
               </div>
