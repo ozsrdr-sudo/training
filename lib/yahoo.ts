@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import YahooFinance from 'yahoo-finance2';
 
-const yahooFinance = new (YahooFinance as any)();
+// Yahoo zaman zaman şemada olmayan alanlar döndürünce kütüphane "Failed Yahoo
+// Schema validation" uyarısı basıyor. Veri yine de geçerli, sadece gürültü;
+// loglamayı kapatıyoruz (allowAdditionalProps zaten true, yani veri korunur).
+const yahooFinance = new (YahooFinance as any)({
+  validation: { logErrors: false, logOptionsErrors: false },
+});
 
 const QUOTE_TTL_MS = 60_000;
 const OPTIONS_TTL_MS = 5 * 60_000;
@@ -106,7 +111,7 @@ export async function getQuote(symbol: string): Promise<QuoteResult> {
     throw new YahooError('rate_limit', 'Rate limit etkin, 30s bekle.');
   }
   try {
-    const q: any = await yf.quote(key);
+    const q: any = await yf.quote(key, undefined, { validateResult: false });
     if (!q || typeof q.regularMarketPrice !== 'number') {
       throw new YahooError('not_found', `Sembol bulunamadı: ${symbol}`);
     }
@@ -135,7 +140,7 @@ export async function getOptions(symbol: string, expiry?: string): Promise<Optio
   }
   try {
     const queryOpts = expiry ? { date: new Date(expiry) } : undefined;
-    const chain: any = await yf.options(symbol.toUpperCase(), queryOpts);
+    const chain: any = await yf.options(symbol.toUpperCase(), queryOpts, { validateResult: false });
     if (!chain) {
       throw new YahooError('not_found', `Opsiyon zinciri yok: ${symbol}`);
     }
@@ -183,7 +188,7 @@ export async function searchSymbols(query: string): Promise<SearchResult[]> {
     throw new YahooError('rate_limit', 'Rate limit etkin, 30s bekle.');
   }
   try {
-    const res: any = await yf.search(query, { quotesCount: 8, newsCount: 0 });
+    const res: any = await yf.search(query, { quotesCount: 8, newsCount: 0 }, { validateResult: false });
     const list: SearchResult[] = ((res?.quotes as any[]) ?? [])
       .filter((q) => typeof q?.symbol === 'string')
       .filter((q) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF')
@@ -215,7 +220,7 @@ export async function getHistoricalCloses(symbol: string, days: number): Promise
       period1,
       period2: now,
       interval: '1d',
-    });
+    }, { validateResult: false });
     const closes = (rows ?? [])
       .map((r) => (typeof r?.close === 'number' && r.close > 0 ? r.close : null))
       .filter((c): c is number => c !== null)
